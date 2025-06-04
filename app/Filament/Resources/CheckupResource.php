@@ -11,46 +11,40 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CheckupResource extends Resource
 {
     protected static ?string $model = Checkup::class;
-    protected static ?string $navigationIcon = 'heroicon-o-calendar';
-    protected static ?string $navigationGroup = 'Aktivitas';
-    protected static ?string $navigationLabel = 'Sesi Pengecekan';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationLabel = 'Sesi Pemeriksaan';
+    protected static ?string $modelLabel = 'Sesi Pemeriksaan';
+    protected static ?string $pluralModelLabel = 'Sesi Pemeriksaan';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            Forms\Components\DatePicker::make('checkup_date')
-                ->label('Tanggal Pengecekan')
-                ->required()
-                ->default(now())
-                ->native(false),
+        return $form
+            ->schema([
+                Forms\Components\DatePicker::make('checkup_date')
+                    ->label('Tanggal Pemeriksaan')
+                    ->required()
+                    ->default(now()),
 
-            Forms\Components\TextInput::make('location')
-                ->label('Lokasi')
-                ->required()
-                ->maxLength(100),
+                Forms\Components\TextInput::make('location')
+                    ->label('Lokasi')
+                    ->required()
+                    ->maxLength(255),
 
-            Forms\Components\Textarea::make('annot')
-                ->label('Catatan')
-                ->columnSpanFull(),
+                Forms\Components\Textarea::make('annot')
+                    ->label('Catatan')
+                    ->columnSpanFull(),
 
-            Forms\Components\Hidden::make('user_id')
-                ->default(fn() => Auth::id())
-                ->dehydrated(true)
-                ->required()
-        ]);
-    }
-
-
-    public static function mutateFormDataBeforeCreate(array $data): array
-    {
-        $data['user_id'] = $data['user_id'] ?? Auth::id(); // fallback kalau user_id belum masuk
-        return $data;
+                Forms\Components\Hidden::make('user_id')
+                    ->default(Auth::id())
+                    ->required(),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -59,33 +53,50 @@ class CheckupResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('checkup_date')
                     ->label('Tanggal')
-                    ->date('d M Y')
+                    ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('location'),
+                Tables\Columns\TextColumn::make('location')
+                    ->searchable(),
 
-                Tables\Columns\TextColumn::make('results_count')
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'active' => 'success',
+                        'completed' => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('examinations_count')
                     ->label('Jumlah Peserta')
-                    ->counts('results'),
+                    ->counts('examinations')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Petugas')
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'active' => 'Aktif',
+                        'completed' => 'Selesai',
+                    ])
             ])
             ->actions([
-                Tables\Actions\Action::make('input_data')
-                    ->label('Input Data')
-                    ->icon('heroicon-m-plus-circle')
-                    ->url(fn(Checkup $record) => ResultResource::getUrl('create', ['checkup_id' => $record->id]))
-                    ->color('success')
-                    ->button(),
-                // ->required(),
-                Tables\Actions\Action::make('lihat_data')
-                    ->label('Lihat Data')
-                    ->icon('heroicon-m-eye')
-                    ->color('info')
-                    ->url(fn(Checkup $record) => ResultResource::getUrl('index', ['checkup_id' => $record->id]))
-                    ->button()
+                Tables\Actions\Action::make('view_participants')
+                    ->label('Lihat Peserta')
+                    ->url(fn(Checkup $record) => ExaminationResource::getUrl('index', [
+                        'checkup_id' => $record->id
+                    ])),
 
+                Tables\Actions\Action::make('complete')
+                    ->label('Selesaikan Sesi')
+                    ->icon('heroicon-o-check')
+                    ->color('danger')
+                    ->action(function (Checkup $record) {
+                        $record->update(['status' => 'completed']);
+                    })
+                    ->visible(fn(Checkup $record) => $record->status === 'active'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -101,7 +112,6 @@ class CheckupResource extends Resource
         ];
     }
 
-
     public static function getPages(): array
     {
         return [
@@ -109,5 +119,10 @@ class CheckupResource extends Resource
             'create' => Pages\CreateCheckup::route('/create'),
             'edit' => Pages\EditCheckup::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withCount('examinations');
     }
 }

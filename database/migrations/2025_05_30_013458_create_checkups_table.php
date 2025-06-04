@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('location');
             $table->string('annot')->nullable();
             $table->foreignId('user_id')->constrained();
+            $table->string('status');
             $table->timestamps();
         });
     }

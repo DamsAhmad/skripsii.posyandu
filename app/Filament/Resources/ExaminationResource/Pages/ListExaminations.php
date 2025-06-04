@@ -13,7 +13,21 @@ class ListExaminations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->url(ExaminationResource::getUrl('create', [
+                    'checkup_id' => request('checkup_id')
+                ]))
+                ->label('Tambah Peserta'),
         ];
+    }
+
+    protected function getTableHeading(): string
+    {
+        $checkupId = request('checkup_id');
+        $checkup = \App\Models\Checkup::find($checkupId);
+
+        return $checkup
+            ? "Sesi Pemeriksaan: {$checkup->location} ({$checkup->checkup_date})"
+            : "Sesi Pemeriksaan";
     }
 }

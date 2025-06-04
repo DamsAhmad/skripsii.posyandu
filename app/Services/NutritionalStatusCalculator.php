@@ -152,4 +152,134 @@ class NutritionalStatusCalculator
 
         return $imtCategory . $trimesterSuffix;
     }
+
+    public static function generateRecommendation(Examination $exam)
+    {
+        $member = $exam->member;
+        $status = $exam->weight_status;
+        $category = $member->category;
+        $isPregnant = $member->is_pregnant;
+
+        $recommendation = "Hasil pemeriksaan: $status. ";
+
+        // Rekomendasi berdasarkan kategori dan status gizi
+        if ($isPregnant) {
+            $lila = $exam->arm_circumference;
+            $gestationalWeek = $exam->gestational_week;
+            $trimester = ceil($gestationalWeek / 13);
+
+            $recommendation .= "Kehamilan minggu ke-$gestationalWeek (Trimester $trimester). ";
+
+            // Deteksi KEK (Kurang Energi Kronis)
+            if (strpos($status, 'KEK') !== false) {
+                $recommendation .= "Lingkar Lengan Atas (LiLA) $lila cm (< 23.5 cm) menunjukkan risiko KEK. ";
+                $recommendation .= "Perbanyak konsumsi makanan tinggi protein dan energi seperti telur, ikan, daging, kacang-kacangan. ";
+                $recommendation .= "Anjurkan suplementasi zat besi dan asam folat. ";
+            }
+
+            // Rekomendasi berdasarkan kategori IMT
+            if (strpos($status, 'Kurus') !== false) {
+                $recommendation .= "Penambahan berat badan dianjurkan 12.5-18 kg selama kehamilan. ";
+                $recommendation .= "Konsumsi tambahan 340-450 kkal/hari dengan fokus pada protein. ";
+            } elseif (strpos($status, 'Normal') !== false) {
+                $recommendation .= "Penambahan berat badan dianjurkan 11.5-16 kg selama kehamilan. ";
+                $recommendation .= "Pertahankan pola makan seimbang dengan tambahan 300 kkal/hari. ";
+            } elseif (strpos($status, 'Gemuk') !== false) {
+                $recommendation .= "Penambahan berat badan dianjurkan 7-11.5 kg selama kehamilan. ";
+                $recommendation .= "Batasi gula dan lemak jenuh, perbanyak sayuran dan buah. ";
+            } elseif (strpos($status, 'Obesitas') !== false) {
+                $recommendation .= "Penambahan berat badan dianjurkan 5-9 kg selama kehamilan. ";
+                $recommendation .= "Pantau ketat gula darah dan tekanan darah. ";
+            }
+
+            // Rekomendasi umum untuk semua ibu hamil
+            $recommendation .= "Lakukan kontrol rutin: ";
+            if ($gestationalWeek < 28) {
+                $recommendation .= "setiap 4 minggu. ";
+            } elseif ($gestationalWeek < 36) {
+                $recommendation .= "setiap 2 minggu. ";
+            } else {
+                $recommendation .= "setiap minggu. ";
+            }
+
+            $recommendation .= "Hindari rokok dan alkohol. ";
+        } elseif ($category === 'balita') {
+            // Rekomendasi untuk balita
+            if (strpos($status, 'Gizi Buruk') !== false) {
+                $recommendation .= "Segera rujuk ke Puskesmas! Berikan makanan tinggi energi dan protein. ";
+                $recommendation .= "Pantau berat badan setiap minggu. Berikan susu terapi gizi. ";
+            } elseif (strpos($status, 'Gizi Kurang') !== false) {
+                $recommendation .= "Tingkatkan frekuensi makan menjadi 5-6 kali sehari. ";
+                $recommendation .= "Berikan makanan padat energi seperti bubur kacang hijau, pisang, dan telur. ";
+                $recommendation .= "Pantau berat badan setiap bulan. ";
+            } elseif (strpos($status, 'Normal') !== false) {
+                $recommendation .= "Pertahankan pola makan seimbang. Lanjutkan ASI eksklusif jika usia < 6 bulan. ";
+                $recommendation .= "Berikan MP-ASI sesuai usia. Lakukan stimulasi tumbuh kembang. ";
+            } elseif (strpos($status, 'Beresiko Gizi Lebih') !== false) {
+                $recommendation .= "Batasi makanan tinggi gula dan lemak. Perbanyak aktivitas fisik. ";
+                $recommendation .= "Berikan buah sebagai camilan. Pantau lingkar lengan setiap bulan. ";
+            } elseif (strpos($status, 'Gizi Lebih') !== false || strpos($status, 'Obesitas') !== false) {
+                $recommendation .= "Konsultasikan ke ahli gizi. Atur pola makan seimbang. ";
+                $recommendation .= "Batasi susu formula, perbanyak aktivitas fisik. Pantau berat badan setiap bulan. ";
+            }
+
+            // Imunisasi
+            $ageInMonths = $member->birthdate->diffInMonths(now());
+            if ($ageInMonths < 24) {
+                $recommendation .= "Pastikan imunisasi lengkap sesuai usia. ";
+            }
+        } elseif ($category === 'anak-remaja') {
+            // Rekomendasi untuk anak remaja
+            if (strpos($status, 'Kurus') !== false) {
+                $recommendation .= "Tingkatkan asupan kalori dan protein. Makan 3 kali utama + 2-3 kali selingan. ";
+                $recommendation .= "Pilih makanan padat gizi seperti susu, telur, daging, dan kacang-kacangan. ";
+            } elseif (strpos($status, 'Normal') !== false) {
+                $recommendation .= "Pertahankan pola makan gizi seimbang. Lakukan aktivitas fisik 60 menit/hari. ";
+                $recommendation .= "Batasi screen time maksimal 2 jam/hari. ";
+            } else {
+                $recommendation .= "Batasi makanan cepat saji dan minuman manis. Perbanyak sayur dan buah. ";
+                $recommendation .= "Tingkatkan aktivitas fisik minimal 60 menit/hari. Pantau berat badan bulanan. ";
+            }
+
+            // Edukasi khusus remaja
+            $recommendation .= "Edukasi pentingnya sarapan dan pola makan teratur. ";
+        } elseif ($category === 'dewasa' || $category === 'lansia') {
+            // Rekomendasi untuk dewasa/lansia
+            if (strpos($status, 'Kurus') !== false) {
+                $recommendation .= "Tingkatkan asupan kalori dengan makanan padat gizi. ";
+                $recommendation .= "Konsumsi suplemen jika diperlukan. Pantau kemungkinan penyakit kronis. ";
+            } elseif (strpos($status, 'Gemuk') !== false || strpos($status, 'Obesitas') !== false) {
+                $recommendation .= "Turunkan berat badan secara bertahap (0.5-1 kg/minggu). ";
+                $recommendation .= "Kurangi porsi makan, perbanyak sayur dan buah. Olahraga 30 menit/hari. ";
+            } else {
+                $recommendation .= "Pertahankan pola makan gizi seimbang. Lakukan aktivitas fisik teratur. ";
+            }
+
+            // Rekomendasi berdasarkan pemeriksaan tambahan
+            if ($exam->tension) {
+                [$systolic, $diastolic] = explode('/', $exam->tension);
+                if ($systolic >= 140 || $diastolic >= 90) {
+                    $recommendation .= "Tekanan darah tinggi! Anjurkan kontrol ke Puskesmas. ";
+                    $recommendation .= "Batasi garam maksimal 1 sendok teh/hari. ";
+                }
+            }
+
+            if ($exam->blood_sugar) {
+                if ($exam->blood_sugar > 200) {
+                    $recommendation .= "Gula darah sangat tinggi (>200 mg/dL)! Segera konsultasi dokter. ";
+                } elseif ($exam->blood_sugar > 126) {
+                    $recommendation .= "Gula darah tinggi (>126 mg/dL). Batasi gula dan karbohidrat sederhana. ";
+                }
+            }
+
+            if ($category === 'lansia') {
+                $recommendation .= "Cukupi asupan kalsium dan vitamin D. Lakukan aktivitas fisik ringan setiap hari. ";
+            }
+        }
+
+        // Rekomendasi umum untuk semua kategori
+        $recommendation .= "Kunjungi Posyandu bulan depan untuk pemantauan lanjutan.";
+
+        return $recommendation;
+    }
 }

@@ -12,8 +12,18 @@ class Checkup extends Model
         'checkup_date',
         'location',
         'annot',
-        'user_id'
+        'user_id',
+        'status'
     ];
+
+    protected $attributes = [
+        'status' => 'active'
+    ];
+
+    public function examinations(): HasMany
+    {
+        return $this->hasMany(Examination::class);
+    }
 
     public function user()
     {
