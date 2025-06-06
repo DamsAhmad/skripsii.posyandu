@@ -17,8 +17,8 @@ return new class extends Migration
             $table->enum('gender', ['Laki-laki', 'Perempuan']);
             $table->integer('age_months');
             $table->float('median');
-            $table->float('sd_minus'); // -1 SD
-            $table->float('sd_plus');  // +1 SD (baru)
+            $table->float('sd_minus'); // -1SD
+            $table->float('sd_plus');  // +1SD
             $table->timestamps();
         });
     }

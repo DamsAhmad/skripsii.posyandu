@@ -148,24 +148,38 @@ class MemberResource extends Resource
         ];
     }
 
+    // public static function calculateCategory($birthdate): string
+    // {
+
+    //     $birth = \Carbon\Carbon::parse($birthdate);
+    //     $ageInMonths = $birth->diffInMonths(\Carbon\Carbon::now());
+
+    //     if ($ageInMonths <= 60) {
+    //         return 'balita';
+    //     } elseif ($ageInMonths <= 228) {
+    //         return 'anak-remaja';
+    //     } elseif ($ageInMonths <= 720) {
+    //         return 'dewasa';
+    //     } else {
+    //         return 'lansia';
+    //     }
+    // }
+
     public static function calculateCategory($birthdate): string
     {
+        $birth = Carbon::parse($birthdate);
+        $ageInMonths = $birth->diffInMonths(Carbon::now());
 
-        $birth = \Carbon\Carbon::parse($birthdate);
-        $ageInMonths = $birth->diffInMonths(\Carbon\Carbon::now());
-
-        if ($ageInMonths <= 60) {
+        if ($ageInMonths <= 60) { // 5 tahun = 60 bulan
             return 'balita';
-        } elseif ($ageInMonths <= 228) {
+        } elseif ($ageInMonths <= 228) { // 19 tahun = 228 bulan
             return 'anak-remaja';
-        } elseif ($ageInMonths <= 720) {
+        } elseif ($ageInMonths <= 720) { // 60 tahun = 720 bulan
             return 'dewasa';
         } else {
             return 'lansia';
         }
     }
-
-
     public static function mutateFormDataBeforeCreate(array $data): array
     {
         $data['category'] = self::calculateCategory($data['birthdate']);

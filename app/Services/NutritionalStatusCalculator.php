@@ -13,11 +13,14 @@ class NutritionalStatusCalculator
     {
         $ageInMonths = $member->birthdate->diffInMonths(now());
 
-        // Handle khusus ibu hamil (IMT + LiLA)
+        if (!$exam->weight || !$exam->height) {
+            return 'Data tidak lengkap';
+        }
+
         if ($member->is_pregnant) {
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
-            $lila = $exam->arm_circumference; // Lingkar Lengan Atas
+            $lila = $exam->arm_circumference;
 
             return self::calculatePregnantStatus(
                 $imt,
@@ -46,7 +49,6 @@ class NutritionalStatusCalculator
 
     private static function calculateWeightForAge($ageMonths, $weight, $gender)
     {
-        // Ambil data referensi
         $reference = GrowthReference::getReference('bbu', $ageMonths, $gender);
 
         if (!$reference) {

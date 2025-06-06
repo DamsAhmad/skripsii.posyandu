@@ -16,4 +16,15 @@ class EditExamination extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        // return ExaminationResource::getUrl('index', [
+        //     'checkup_id' => $this->record->checkup_id,
+        // ]);
+
+        return ExaminationResource::getUrl(name: 'index', parameters: [
+            'checkup_id' => request('checkup_id'),
+        ]);
+    }
 }

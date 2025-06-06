@@ -12,18 +12,24 @@ class CreateExamination extends CreateRecord
 {
     protected static string $resource = ExaminationResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
+    public function mount(): void
     {
-        $data['checkup_id'] = request('checkup_id');
-        return $data;
-    }
+        parent::mount();
 
-    protected function getRedirectUrl(): string
-    {
-        return ExaminationResource::getUrl('index', [
-            'checkup_id' => request('checkup_id')
+        // inject value ke form langsung dari URL
+        $this->form->fill([
+            'checkup_id' => request()->get('checkup_id'),
         ]);
     }
+    // protected function mutateFormDataBeforeCreate(array $data): array
+    // {
+    //     $data['checkup_id'] = request()->get('checkup_id');
+
+    //     logger()->info('DEBUG CHECKUP_ID', ['checkup_id' => $data['checkup_id']]);
+
+    //     dd($data);
+    //     return $data;
+    // }
 
     protected function afterCreate(): void
     {
@@ -42,5 +48,12 @@ class CreateExamination extends CreateRecord
             ->body($recommendation)
             ->success()
             ->send();
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return ExaminationResource::getUrl('index', [
+            'checkup_id' => $this->record->checkup_id,
+        ]);
     }
 }

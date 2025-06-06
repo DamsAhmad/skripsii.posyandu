@@ -16,4 +16,9 @@ class CreateMember extends CreateRecord
         $data['category'] = MemberResource::calculateCategory($data['birthdate'] ?? null);
         return $data;
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

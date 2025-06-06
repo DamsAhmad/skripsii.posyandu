@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Examination extends Model
 {
     protected $fillable = [
-        'checkup_id',
         'member_id',
+        'checkup_id',
         'weight',
         'height',
         'head_circumference',
@@ -24,24 +24,24 @@ class Examination extends Model
         'recommendation',
     ];
 
-    public function checkups()
+    public function checkup()
     {
         return $this->belongsTo(Checkup::class);
     }
 
-    public function members()
+    public function member()
     {
         return $this->belongsTo(Member::class);
     }
 
-    public static function boot()
-    {
-        parent::boot();
+    // public static function boot()
+    // {
+    //     parent::boot();
 
-        static::creating(function ($model) {
-            if (!$model->checkup_id) {
-                throw new \Exception('Sesi pemeriksaan tidak valid');
-            }
-        });
-    }
+    //     static::creating(function ($model) {
+    //         if (!$model->checkup_id) {
+    //             throw new \Exception('Sesi pemeriksaan tidak valid');
+    //         }
+    //     });
+    // }
 }

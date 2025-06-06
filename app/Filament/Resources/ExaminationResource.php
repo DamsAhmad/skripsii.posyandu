@@ -36,9 +36,10 @@ class ExaminationResource extends Resource
         return $form
             ->schema([
                 Hidden::make('checkup_id')
-                    ->default(request('checkup_id'))
-                    ->required(),
-
+                    // ->default(request()->get('checkup_id'))
+                    // ->state(request()->get('checkup_id'))
+                    ->required()
+                    ->dehydrated(true),
 
                 Select::make('member_id')
                     ->label('Pilih Peserta')
@@ -284,22 +285,22 @@ class ExaminationResource extends Resource
             ]);
     }
 
-    // public static function afterCreate(Examination $record)
-    // {
-    //     $status = NutritionalStatusCalculator::calculate($record->member, $record);
-    //     $recommendation = NutritionalStatusCalculator::generateRecommendation($record);
+    public static function afterCreate(Examination $record)
+    {
+        $status = NutritionalStatusCalculator::calculate($record->member, $record);
+        $recommendation = NutritionalStatusCalculator::generateRecommendation($record);
 
-    //     $record->update([
-    //         'weight_status' => $status,
-    //         'recommendation' => $recommendation
-    //     ]);
+        $record->update([
+            'weight_status' => $status,
+            'recommendation' => $recommendation
+        ]);
 
-    //     Notification::make()
-    //         ->title('Status Gizi: ' . $status)
-    //         ->body($recommendation)
-    //         ->success()
-    //         ->send();
-    // }
+        Notification::make()
+            ->title('Status Gizi: ' . $status)
+            ->body($recommendation)
+            ->success()
+            ->send();
+    }
 
     public static function getPages(): array
     {
@@ -310,12 +311,33 @@ class ExaminationResource extends Resource
         ];
     }
 
+    // public static function getEloquentQuery(): Builder
+    // {
+    //     $query = parent::getEloquentQuery();
+    //     $checkupId = request('checkup_id');
+
+    //     if ($checkupId) {
+    //         $query->where('checkup_id', $checkupId);
+    //     } else {
+    //         // Fallback jika checkup_id tidak ada
+    //         $query->whereNull('checkup_id'); // Atau sesuaikan dengan logika Anda
+    //     }
+
+    //     return $query;
+    // }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
-        if (request()->has('checkup_id')) {
-            $query->where('checkup_id', request('checkup_id'));
+        if (request()->routeIs('filament.admin.resources.examinations.index')) {
+            $checkupId = request('checkup_id');
+
+            if ($checkupId) {
+                $query->where('checkup_id', $checkupId);
+            } else {
+                $query->whereNull('checkup_id');
+            }
         }
 
         return $query;

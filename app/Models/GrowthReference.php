@@ -6,6 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class GrowthReference extends Model
 {
+
+    protected $fillable = [
+        'month',
+        'gender',
+        'type',
+        'median',
+        'sd_minus',
+        'sd_plus'
+    ];
+
     public static function getReference($indicator, $ageMonths, $gender)
     {
         // Cari tepat

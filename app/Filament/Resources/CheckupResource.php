@@ -22,6 +22,9 @@ class CheckupResource extends Resource
     protected static ?string $modelLabel = 'Sesi Pemeriksaan';
     protected static ?string $pluralModelLabel = 'Sesi Pemeriksaan';
     protected static ?int $navigationSort = 1;
+    protected $attributes = [
+        'status' => 'active'
+    ];
 
     public static function form(Form $form): Form
     {

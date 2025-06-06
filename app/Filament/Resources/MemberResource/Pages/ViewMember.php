@@ -9,11 +9,11 @@ class ViewMember extends ViewRecord
 {
     protected static string $resource = MemberResource::class;
 
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            MemberResource\Widgets\GrowthChartWidget::class,
-            // MemberResource\Widgets\NutritionStatusWidget::class
-        ];
-    }
+    // protected function getHeaderWidgets(): array
+    // {
+    //     return [
+    //         MemberResource\Widgets\GrowthChartWidget::class,
+    //         // MemberResource\Widgets\NutritionStatusWidget::class
+    //     ];
+    // }
 }

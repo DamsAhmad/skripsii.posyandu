@@ -15,8 +15,17 @@ class Member extends Model
         'is_pregnant'
     ];
 
-    public function results()
+    protected $casts = [
+        'birthdate' => 'datetime',
+    ];
+
+    // public function results()
+    // {
+    //     return $this->hasMany(\App\Models\Result::class);
+    // }
+
+    public function examinations()
     {
-        return $this->hasMany(\App\Models\Result::class);
+        return $this->hasMany(\App\Models\Examination::class);
     }
 }
