@@ -34,7 +34,6 @@ class MemberResource extends Resource
         return $form
             ->schema([
                 Section::make('Data Peserta')->schema([
-
                     Forms\Components\TextInput::make('member_name')
                         ->label('Nama Peserta')
                         ->placeholder('Masukan nama lengkap peserta')
@@ -119,16 +118,6 @@ class MemberResource extends Resource
                     ->modalHeading('Hapus Anggota')
                     ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
                     ->action(function (Member $record) {
-
-                        // if ($record->has_examinations) {
-                        //     Notification::make()
-                        //         ->danger()
-                        //         ->title('Gagal Hapus')
-                        //         ->body('Anggota ini memiliki riwayat pemeriksaan!')
-                        //         ->send();
-                        //     return;
-                        // }
-
                         $record->delete();
                     })
                     ->iconPosition(IconPosition::After)
@@ -147,23 +136,6 @@ class MemberResource extends Resource
             //
         ];
     }
-
-    // public static function calculateCategory($birthdate): string
-    // {
-
-    //     $birth = \Carbon\Carbon::parse($birthdate);
-    //     $ageInMonths = $birth->diffInMonths(\Carbon\Carbon::now());
-
-    //     if ($ageInMonths <= 60) {
-    //         return 'balita';
-    //     } elseif ($ageInMonths <= 228) {
-    //         return 'anak-remaja';
-    //     } elseif ($ageInMonths <= 720) {
-    //         return 'dewasa';
-    //     } else {
-    //         return 'lansia';
-    //     }
-    // }
 
     public static function calculateCategory($birthdate): string
     {

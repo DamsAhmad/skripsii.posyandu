@@ -1,41 +1,37 @@
 <?php
 
-namespace App\Filament\Resources;
-
-use App\Filament\Resources\ExaminationResource\Pages;
-use App\Models\Member;
-use App\Models\Examination;
-use App\Models\Checkup;
-use App\Services\NutritionalStatusCalculator;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
-use Filament\Forms\Form;
+use Filament\Forms;
 use Filament\Tables;
-use Filament\Resources\Resource;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
-use Filament\Support\Enums\IconPosition;
-use Filament\Forms\Components\Fieldset;
+
+use App\Services\NutritionalStatusCalculator;
+use App\Filament\Resources\ExaminationResource;
+use App\Filament\Resources\CheckupResource;
+
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
-use Filament\Notifications\Notification;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Hidden;
+
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
-use App\Filament\Resources\CheckupResource\RelationManagers\ExaminationRelationManager;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\DeleteAction;
+
+use App\Models\Examination;
+use App\Models\Member;
+use App\Models\Checkup;
+
 use Carbon\Carbon;
+use Filament\Support\Enums\IconPosition;
 
-class ExaminationResource extends Resource
+class ExaminationRelationManager extends RelationManager
 {
-    protected static ?string $model = Examination::class;
-    protected static ?string $navigationIcon = 'heroicon-o-user-plus';
-    protected static ?string $navigationLabel = 'Pemeriksaan Peserta';
-    protected static ?string $modelLabel = 'Pemeriksaan Peserta';
-    protected static ?string $pluralModelLabel = 'Pemeriksaan Peserta';
-    protected static ?int $navigationSort = 2;
-    protected static bool $shouldRegisterNavigation = false;
+    protected static string $relationship = 'examinations';
 
-    public static function form(Form $form): Form
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
@@ -48,7 +44,7 @@ class ExaminationResource extends Resource
                     ->options(Member::all()->pluck('member_name', 'id'))
                     ->searchable()
                     ->reactive()
-                    ->afterStateUpdated(function ($set, $get, $state) {
+                    ->afterStateHydrated(function ($set, $get, $state) {
                         if ($state) {
                             $member = Member::find($state);
                             if ($member) {
@@ -111,6 +107,7 @@ class ExaminationResource extends Resource
                         $member = \App\Models\Member::create($data);
                         return $member->id;
                     }),
+
 
                 TextInput::make('category')
                     ->label('Kategori')
@@ -211,9 +208,10 @@ class ExaminationResource extends Resource
             ]);
     }
 
-    public static function table(Table $table): Table
+    public function table(Tables\Table $table): Tables\Table
     {
         return $table
+            ->heading('Data Pemeriksaan')
             ->columns([
                 TextColumn::make('member.member_name')
                     ->label('Nama')
@@ -279,107 +277,55 @@ class ExaminationResource extends Resource
                         default => 'gray',
                     }),
             ])
-            // ->filters([
-            //     SelectFilter::make('category')
-            //         ->options([
-            //             'balita' => 'Balita',
-            //             'anak-remaja' => 'Anak Remaja',
-            //             'dewasa' => 'Dewasa',
-            //             'lansia' => 'Lansia',
-            //         ])
-            // ])
+
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalHeading('Ubah Data Pemeriksaan')
+                    ->button()
+                    ->after(function (Examination $record, array $data) {
+                        $status = \App\Services\NutritionalStatusCalculator::calculate($record->member, $record);
+                        $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
+
+                        $record->update([
+                            'weight_status' => $status,
+                            'recommendation' => $recommendation,
+                        ]);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Status Gizi Diperbarui: ' . $status)
+                            ->body($recommendation)
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
                     ->modalHeading('Hapus Data Pemeriksaan')
                     ->modalDescription('Anda yakin ingin menghapus data pemeriksaan peserta ini? Tindakan ini tidak dapat dibatalkan.')
                     ->action(function (Examination $record) {
                         $record->delete();
-                        return redirect(ExaminationResource::getUrl('index', ['checkup_id' => request()->get('checkup_id')]));
+                    })
+                    ->before(function ($record) {
+                        logger('HAPUS NIH: ' . $record->id);
                     })
                     ->iconPosition(IconPosition::After)
                     ->button()
             ])
             ->headerActions([
-                Action::make('add_participant')
+                Tables\Actions\Action::make('back')
+                    ->label('Kembali ke Daftar Sesi')
+                    ->icon('heroicon-o-arrow-left')
+                    ->color('success')
+                    ->url(fn() => route('filament.admin.resources.checkups.index')),
+
+                Tables\Actions\CreateAction::make()
                     ->label('Tambah Peserta')
                     ->icon('heroicon-o-plus')
-                    ->url(fn() => ExaminationResource::getUrl('create', [
-                        'checkup_id' => request('checkup_id')
-                    ])),
+                    ->url(fn(): string => ExaminationResource::getUrl('create', [
+                        'checkup_id' => $this->getOwnerRecord()->id
+                    ]))
+                    ->visible(fn(): bool => $this->getOwnerRecord()->status === 'active'),
 
-                Action::make('stop_session')
-                    ->label('Stop Sesi')
-                    ->icon('heroicon-o-stop')
-                    ->color('danger')
-                    ->action(function () {
-                        $checkup = Checkup::find(request('checkup_id'));
-                        $checkup->update(['status' => 'completed']);
-
-                        return redirect(CheckupResource::getUrl('index'));
-                    })
-                    ->visible(fn() => Checkup::find(request('checkup_id'))?->status === 'active'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
-    }
-
-    public static function afterCreate(Examination $record)
-    {
-        $status = NutritionalStatusCalculator::calculate($record->member, $record);
-        $recommendation = NutritionalStatusCalculator::generateRecommendation($record);
-
-        $record->update([
-            'weight_status' => $status,
-            'recommendation' => $recommendation
-        ]);
-
-        Notification::make()
-            ->title('Status Gizi: ' . $status)
-            ->body($recommendation)
-            ->success()
-            ->send();
-    }
-
-
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-
-        // $checkupId = request('checkup_id') ?? optional(request()->route()?->parameters())['checkup_id'] ?? null;
-
-        // $checkupId = request('checkup_id') ?? request()->route('checkup_id');
-
-        // if ($checkupId) {
-        //     $query->where('checkup_id', $checkupId);
-        // } else {
-        //     $query->whereNull('checkup_id');
-        // }
-
-        $checkupId = request('checkup_id');
-
-        if (!$checkupId) {
-            $checkupId = request()->route('checkup_id');
-        }
-
-        if ($checkupId) {
-            $query->where('checkup_id', $checkupId);
-        } else {
-            $query->whereNull('checkup_id');
-        }
-
-        return $query;
-    }
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListExaminations::route('/'),
-            'create' => Pages\CreateExamination::route('/create'),
-            'edit' => Pages\EditExamination::route('/{record}/edit'),
-        ];
     }
 }

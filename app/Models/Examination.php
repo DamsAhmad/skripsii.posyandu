@@ -24,6 +24,11 @@ class Examination extends Model
         'recommendation',
     ];
 
+    public function getTitleAttribute()
+    {
+        return 'Pemeriksaan pada ' . $this->created_at->format('d M Y');
+    }
+
     public function checkup()
     {
         return $this->belongsTo(Checkup::class);
