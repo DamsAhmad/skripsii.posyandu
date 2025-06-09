@@ -13,6 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Support\Enums\IconPosition;
+// use App\Filament\Resources\CheckupResource\RelationManagers\ExaminationsRelationManager;
+use ExaminationRelationManager;
 
 class CheckupResource extends Resource
 {
@@ -88,10 +91,13 @@ class CheckupResource extends Resource
             ->actions([
                 Tables\Actions\Action::make('view_participants')
                     ->label('Lihat Peserta')
-                    ->url(fn(Checkup $record) => ExaminationResource::getUrl('index', [
-                        'checkup_id' => $record->id
-                    ])),
-
+                    // ->url(fn(Checkup $record) => ExaminationResource::getUrl('index', [
+                    //     'checkup_id' => $record->id
+                    // ])),
+                    ->url(fn(Checkup $record) => CheckupResource::getUrl(
+                        'edit',
+                        ['record' => $record->id]
+                    ) . '#relationship-examinations'),
                 Tables\Actions\Action::make('complete')
                     ->label('Selesaikan Sesi')
                     ->icon('heroicon-o-check')
@@ -100,6 +106,19 @@ class CheckupResource extends Resource
                         $record->update(['status' => 'completed']);
                     })
                     ->visible(fn(Checkup $record) => $record->status === 'active'),
+
+                Tables\Actions\EditAction::make()
+                    ->iconPosition(IconPosition::After)
+                    ->button(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
+                    ->modalHeading('Hapus Sesi Pemeriksaan')
+                    ->modalDescription('Anda yakin ingin menghapus sesi Pemeriksaan ini? Tindakan ini tidak dapat dibatalkan.')
+                    ->action(function (Checkup $record) {
+                        $record->delete();
+                    })
+                    ->iconPosition(IconPosition::After)
+                    ->button()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -111,7 +130,7 @@ class CheckupResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ExaminationRelationManager::class,
         ];
     }
 

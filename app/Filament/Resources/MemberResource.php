@@ -34,7 +34,6 @@ class MemberResource extends Resource
         return $form
             ->schema([
                 Section::make('Data Peserta')->schema([
-
                     Forms\Components\TextInput::make('member_name')
                         ->label('Nama Peserta')
                         ->placeholder('Masukan nama lengkap peserta')
@@ -119,16 +118,6 @@ class MemberResource extends Resource
                     ->modalHeading('Hapus Anggota')
                     ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
                     ->action(function (Member $record) {
-
-                        // if ($record->has_examinations) {
-                        //     Notification::make()
-                        //         ->danger()
-                        //         ->title('Gagal Hapus')
-                        //         ->body('Anggota ini memiliki riwayat pemeriksaan!')
-                        //         ->send();
-                        //     return;
-                        // }
-
                         $record->delete();
                     })
                     ->iconPosition(IconPosition::After)

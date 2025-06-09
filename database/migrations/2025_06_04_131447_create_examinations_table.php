@@ -15,25 +15,18 @@ return new class extends Migration
             $table->id();
             $table->foreignId('member_id')->constrained()->cascadeOnDelete();
             $table->foreignId('checkup_id')->constrained()->cascadeOnDelete();
-
-            // Data fisik universal
-            $table->float('weight'); // BB (kg)
-            $table->float('height'); // TB/PB (cm)
-
-            // Data spesifik kategori
-            $table->float('arm_circumference')->nullable(); // Lingkar lengan
-            $table->float('head_circumference')->nullable(); // Balita
-            $table->float('abdominal_circumference')->nullable(); // Remaja/dewasa/lansia/ibu-hamil
-            $table->string('tension')->nullable(); // Tensi (contoh: "120/80")
-            $table->float('uric_acid')->nullable(); // Asam urat
-            $table->float('blood_sugar')->nullable(); // Gula darah
-            $table->float('cholesterol')->nullable(); // Kolesterol
-            $table->integer('gestational_week')->nullable(); //usia kehamilan
-
-            // Hasil analisis
-            $table->string('weight_status')->nullable(); // Status gizi
-            $table->text('recommendation')->nullable(); // Rekomendasi
-
+            $table->float('weight');
+            $table->float('height');
+            $table->float('arm_circumference')->nullable();
+            $table->float('head_circumference')->nullable();
+            $table->float('abdominal_circumference')->nullable();
+            $table->string('tension')->nullable();
+            $table->float('uric_acid')->nullable();
+            $table->float('blood_sugar')->nullable();
+            $table->float('cholesterol')->nullable();
+            $table->integer('gestational_week')->nullable();
+            $table->string('weight_status')->nullable();
+            $table->text('recommendation')->nullable();
             $table->timestamps();
         });
     }
