@@ -92,7 +92,23 @@ class ExaminationResource extends Resource
                         fn($action) => $action->label('Tambah Peserta Baru'),
                     )
                     ->createOptionUsing(function (array $data) {
-                        $member = Member::create($data);
+                        $birthdate = \Carbon\Carbon::parse($data['birthdate']);
+                        $ageInMonths = $birthdate->diffInMonths(now());
+                        $ageInYears = $birthdate->age;
+
+                        if ($ageInMonths <= 24) {
+                            $data['category'] = 'balita-0-24';
+                        } elseif ($ageInMonths <= 59) {
+                            $data['category'] = 'balita-25-59';
+                        } elseif ($ageInYears <= 18) {
+                            $data['category'] = 'anak-remaja';
+                        } elseif ($ageInYears <= 59) {
+                            $data['category'] = 'dewasa';
+                        } else {
+                            $data['category'] = 'lansia';
+                        }
+
+                        $member = \App\Models\Member::create($data);
                         return $member->id;
                     }),
 

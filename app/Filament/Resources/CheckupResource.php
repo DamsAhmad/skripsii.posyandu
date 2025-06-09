@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Enums\IconPosition;
-// use App\Filament\Resources\CheckupResource\RelationManagers\ExaminationsRelationManager;
 use ExaminationRelationManager;
 
 class CheckupResource extends Resource

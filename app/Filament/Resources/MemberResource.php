@@ -137,23 +137,6 @@ class MemberResource extends Resource
         ];
     }
 
-    // public static function calculateCategory($birthdate): string
-    // {
-
-    //     $birth = \Carbon\Carbon::parse($birthdate);
-    //     $ageInMonths = $birth->diffInMonths(\Carbon\Carbon::now());
-
-    //     if ($ageInMonths <= 60) {
-    //         return 'balita';
-    //     } elseif ($ageInMonths <= 228) {
-    //         return 'anak-remaja';
-    //     } elseif ($ageInMonths <= 720) {
-    //         return 'dewasa';
-    //     } else {
-    //         return 'lansia';
-    //     }
-    // }
-
     public static function calculateCategory($birthdate): string
     {
         $birth = Carbon::parse($birthdate);

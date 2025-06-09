@@ -6,6 +6,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 
+use App\Services\NutritionalStatusCalculator;
 use App\Filament\Resources\ExaminationResource;
 use App\Filament\Resources\CheckupResource;
 
@@ -43,7 +44,7 @@ class ExaminationRelationManager extends RelationManager
                     ->options(Member::all()->pluck('member_name', 'id'))
                     ->searchable()
                     ->reactive()
-                    ->afterStateUpdated(function ($set, $get, $state) {
+                    ->afterStateHydrated(function ($set, $get, $state) {
                         if ($state) {
                             $member = Member::find($state);
                             if ($member) {
@@ -87,9 +88,26 @@ class ExaminationRelationManager extends RelationManager
                         fn($action) => $action->label('Tambah Peserta Baru'),
                     )
                     ->createOptionUsing(function (array $data) {
-                        $member = Member::create($data);
+                        $birthdate = \Carbon\Carbon::parse($data['birthdate']);
+                        $ageInMonths = $birthdate->diffInMonths(now());
+                        $ageInYears = $birthdate->age;
+
+                        if ($ageInMonths <= 24) {
+                            $data['category'] = 'balita-0-24';
+                        } elseif ($ageInMonths <= 59) {
+                            $data['category'] = 'balita-25-59';
+                        } elseif ($ageInYears <= 18) {
+                            $data['category'] = 'anak-remaja';
+                        } elseif ($ageInYears <= 59) {
+                            $data['category'] = 'dewasa';
+                        } else {
+                            $data['category'] = 'lansia';
+                        }
+
+                        $member = \App\Models\Member::create($data);
                         return $member->id;
                     }),
+
 
                 TextInput::make('category')
                     ->label('Kategori')
@@ -193,6 +211,7 @@ class ExaminationRelationManager extends RelationManager
     public function table(Tables\Table $table): Tables\Table
     {
         return $table
+            ->heading('Data Pemeriksaan')
             ->columns([
                 TextColumn::make('member.member_name')
                     ->label('Nama')
@@ -258,17 +277,27 @@ class ExaminationRelationManager extends RelationManager
                         default => 'gray',
                     }),
             ])
-            // ->filters([
-            //     SelectFilter::make('category')
-            //         ->options([
-            //             'balita' => 'Balita',
-            //             'anak-remaja' => 'Anak Remaja',
-            //             'dewasa' => 'Dewasa',
-            //             'lansia' => 'Lansia',
-            //         ])
-            // ])
+
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalHeading('Ubah Data Pemeriksaan')
+                    ->button()
+                    ->after(function (Examination $record, array $data) {
+                        $status = \App\Services\NutritionalStatusCalculator::calculate($record->member, $record);
+                        $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
+
+                        $record->update([
+                            'weight_status' => $status,
+                            'recommendation' => $recommendation,
+                        ]);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Status Gizi Diperbarui: ' . $status)
+                            ->body($recommendation)
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
                     ->modalHeading('Hapus Data Pemeriksaan')
@@ -283,16 +312,20 @@ class ExaminationRelationManager extends RelationManager
                     ->button()
             ])
             ->headerActions([
+                Tables\Actions\Action::make('back')
+                    ->label('Kembali ke Daftar Sesi')
+                    ->icon('heroicon-o-arrow-left')
+                    ->color('success')
+                    ->url(fn() => route('filament.admin.resources.checkups.index')),
+
                 Tables\Actions\CreateAction::make()
                     ->label('Tambah Peserta')
                     ->icon('heroicon-o-plus')
                     ->url(fn(): string => ExaminationResource::getUrl('create', [
                         'checkup_id' => $this->getOwnerRecord()->id
                     ]))
-                // ->openUrlInNewTab(),
-                // ->url(fn() => CheckupResource::getUrl('edit', [
-                //     'record' => $this->getOwnerRecord()->getKey(),
-                // ]) . '#relationship-examinations')
+                    ->visible(fn(): bool => $this->getOwnerRecord()->status === 'active'),
+
             ]);
     }
 }
