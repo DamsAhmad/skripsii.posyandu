@@ -4,7 +4,7 @@ namespace App\Filament\Resources\ExaminationResource\Pages;
 
 use App\Filament\Resources\ExaminationResource;
 use App\Filament\Resources\CheckupResource;
-use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use App\Services\NutritionalStatusCalculator;
@@ -16,6 +16,7 @@ class CreateExamination extends CreateRecord
 
     protected static bool $canCreateAnother = false;
 
+
     // protected function getCreateFormActions(): array
     // {
     //     return [
@@ -26,8 +27,6 @@ class CreateExamination extends CreateRecord
     public function mount(): void
     {
         parent::mount();
-
-        // inject value ke form langsung dari URL
         $this->form->fill([
             'checkup_id' => request()->get('checkup_id'),
         ]);
@@ -47,45 +46,46 @@ class CreateExamination extends CreateRecord
     protected function afterCreate(): void
     {
         Log::info('AFTER CREATE DIPANGGIL');
-
         $record = $this->record;
 
-        Log::info('RECORD:', $record->toArray());
-
         try {
-            $status = NutritionalStatusCalculator::calculate($record->member, $record);
-            $recommendation = NutritionalStatusCalculator::generateRecommendation($record);
+            $member = $record->member;
 
-            Log::info('STATUS:', [$status]);
-            Log::info('REKOMENDASI:', [$recommendation]);
+            $status = NutritionalStatusCalculator::generateStatus($member, $record);
+            $z_score = NutritionalStatusCalculator::generateZscore($member, $record);
+            $anthropometric_value = NutritionalStatusCalculator::generateAnthropometric($member, $record);
+            $recommendation = NutritionalStatusCalculator::generateRecommendation($record);
 
             $record->update([
                 'weight_status' => $status,
+                'z_score' => $z_score,
+                'anthropometric_value' => $anthropometric_value,
                 'recommendation' => $recommendation,
             ]);
+
+            Log::info('RECORD AFTER UPDATE:', $record->fresh()->toArray());
+
+            Notification::make()
+                ->title('Status Gizi: ' . $status)
+                ->body($recommendation)
+                ->success()
+                ->send();
         } catch (\Throwable $e) {
             Log::error('GAGAL DI AFTERCREATE: ' . $e->getMessage());
-            throw $e; // biar muncul error putih di browser kalau debug nyala
+            Log::error($e->getTraceAsString());
+
+            Notification::make()
+                ->title('Error')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
         }
-
-        Notification::make()
-            ->title('Status Gizi: ' . $status)
-            ->body($recommendation)
-            ->success()
-            ->send();
-
-        // $this->redirectUrl(CheckupResource::getUrl('edit', [
-        //     'record' => $this->data['checkup_id']
-        // ]));
     }
 
     protected function getRedirectUrl(): string
     {
         return CheckupResource::getUrl('edit', ['record' => $this->data['checkup_id']]);
     }
-
-
-
 
     // protected function getRedirectUrl(): string
     // {

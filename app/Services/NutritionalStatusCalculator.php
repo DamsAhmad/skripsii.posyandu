@@ -14,7 +14,11 @@ class NutritionalStatusCalculator
         $ageInMonths = $member->birthdate->diffInMonths(now());
 
         if (!$exam->weight || !$exam->height) {
-            return 'Data tidak lengkap';
+            return [
+                'status' => 'Data tidak lengkap',
+                'z_score' => null,
+                'anthropometric_value' => null
+            ];
         }
 
         if ($member->is_pregnant) {
@@ -22,14 +26,9 @@ class NutritionalStatusCalculator
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
             $lila = $exam->arm_circumference;
 
-            return self::calculatePregnantStatus(
-                $imt,
-                $lila,
-                $exam->gestational_week
-            );
+            return self::calculatePregnantStatus($imt, $lila, $exam->gestational_week);
         }
 
-        // Kategori lainnya
         if ($member->category === 'balita') {
             return self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
         }
@@ -41,10 +40,94 @@ class NutritionalStatusCalculator
         if (in_array($member->category, ['dewasa', 'lansia'])) {
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
+
+            return [
+                'status' => self::categorizeIMT($imt, $member->category),
+                'z_score' => null,
+                'anthropometric_value' => $imt
+            ];
+        }
+
+        return [
+            'status' => self::generateStatus($member, $exam),
+            'z_score' => self::generateZscore($member, $exam),
+            'anthropometric_value' => self::generateAnthropometric($member, $exam),
+        ];
+    }
+
+    public static function generateStatus(Member $member, Examination $exam): string
+    {
+        if (!$exam->weight || !$exam->height) {
+            return 'Data tidak lengkap';
+        }
+
+        if ($member->is_pregnant) {
+            $heightInMeters = $exam->height / 100;
+            $imt = $exam->weight / ($heightInMeters * $heightInMeters);
+            $lila = $exam->arm_circumference;
+            return self::combinePregnantStatus(self::categorizePregnantIMT($imt), ($lila < 23.5 ? 'KEK' : 'Normal'), $exam->gestational_week);
+        }
+
+        if ($member->category === 'balita') {
+            $result = self::calculateWeightForAge($member->birthdate->diffInMonths(now()), $exam->weight, $member->gender);
+            return $result['status'];
+        }
+
+        if ($member->category === 'anak-remaja') {
+            $result = self::calculateIMTForAge($member->birthdate->diffInMonths(now()), $exam->weight, $exam->height, $member->gender);
+            return $result['status'];
+        }
+
+        if (in_array($member->category, ['dewasa', 'lansia'])) {
+            $heightInMeters = $exam->height / 100;
+            $imt = $exam->weight / ($heightInMeters * $heightInMeters);
             return self::categorizeIMT($imt, $member->category);
         }
 
         return 'Kategori tidak didukung';
+    }
+
+    public static function generateZscore(Member $member, Examination $exam): ?float
+    {
+        if (!$exam->weight || !$exam->height) return null;
+        if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) return null;
+
+        $ageInMonths = $member->birthdate->diffInMonths(now());
+
+        if ($member->category === 'balita') {
+            $result = self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
+            return $result['z_score'];
+        }
+
+        if ($member->category === 'anak-remaja') {
+            $result = self::calculateIMTForAge($ageInMonths, $exam->weight, $exam->height, $member->gender);
+            return $result['z_score'];
+        }
+
+        return null;
+    }
+
+    public static function generateAnthropometric(Member $member, Examination $exam): ?float
+    {
+        if (!$exam->weight || !$exam->height) return null;
+
+        if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) {
+            $heightInMeters = $exam->height / 100;
+            return $exam->weight / ($heightInMeters * $heightInMeters);
+        }
+
+        $ageInMonths = $member->birthdate->diffInMonths(now());
+
+        if ($member->category === 'balita') {
+            return (float) $exam->weight;
+        }
+
+        if ($member->category === 'anak-remaja') {
+            $heightInMeters = $exam->height / 100;
+            return $exam->weight / ($heightInMeters * $heightInMeters);
+        }
+
+        return null;
     }
 
     private static function calculateWeightForAge($ageMonths, $weight, $gender)
@@ -52,27 +135,42 @@ class NutritionalStatusCalculator
         $reference = GrowthReference::getReference('bbu', $ageMonths, $gender);
 
         if (!$reference) {
-            return 'Data referensi tidak tersedia';
+            return [
+                'status' => 'Data referensi tidak tersedia',
+                'z_score' => null,
+                'anthropometric_value' => (float) $weight
+            ];
         }
 
         $median = $reference->median;
-        $sd_minus = $reference->sd_minus; // -1 SD
-        $sd_plus = $reference->sd_plus;   // +1 SD (tambahkan kolom ini di tabel)
+        $sd_minus = $reference->sd_minus;
+        $sd_plus = $reference->sd_plus;
 
-        // Rumus Z-score berdasarkan posisi relatif terhadap median
         if ($weight < $median) {
             $z_score = ($weight - $median) / ($median - $sd_minus);
         } else {
             $z_score = ($weight - $median) / ($sd_plus - $median);
         }
 
-        // Klasifikasi berdasarkan Permenkes
-        if ($z_score < -3) return 'Gizi Buruk';
-        if ($z_score < -2) return 'Gizi Kurang';
-        if ($z_score <= 1) return 'Normal';
-        if ($z_score <= 2) return 'Beresiko Gizi Lebih';
-        if ($z_score <= 3) return 'Gizi Lebih';
-        return 'Obesitas';
+        if ($z_score < -3) {
+            $status = 'Gizi Buruk';
+        } elseif ($z_score < -2) {
+            $status = 'Gizi Kurang';
+        } elseif ($z_score <= 1) {
+            $status = 'Normal';
+        } elseif ($z_score <= 2) {
+            $status = 'Beresiko Gizi Lebih';
+        } elseif ($z_score <= 3) {
+            $status = 'Gizi Lebih';
+        } else {
+            $status = 'Obesitas';
+        }
+
+        return [
+            'status' => $status,
+            'z_score' => round($z_score, 1),
+            'anthropometric_value' => round((float) $weight, 1)
+        ];
     }
 
     private static function calculateIMTForAge($ageMonths, $weight, $height, $gender)
@@ -83,65 +181,56 @@ class NutritionalStatusCalculator
         $reference = GrowthReference::getReference('imtu', $ageMonths, $gender);
 
         if (!$reference) {
-            return 'Data referensi tidak tersedia';
+            return [
+                'status' => 'Data referensi tidak tersedia',
+                'z_score' => null,
+                'anthropometric_value' => (float) $actualIMT
+            ];
         }
 
         $median = $reference->median;
-        $sd_minus = $reference->sd_minus; // -1 SD
-        $sd_plus = $reference->sd_plus;   // +1 SD (tambahkan kolom ini di tabel)
+        $sd_minus = $reference->sd_minus;
+        $sd_plus = $reference->sd_plus;
 
-        // Rumus Z-score berdasarkan posisi relatif terhadap median
         if ($actualIMT < $median) {
             $z_score = ($actualIMT - $median) / ($median - $sd_minus);
         } else {
             $z_score = ($actualIMT - $median) / ($sd_plus - $median);
         }
 
-        // Klasifikasi
-        if ($z_score < -3) return 'Sangat Kurus';
-        if ($z_score < -2) return 'Kurus';
-        if ($z_score <= 1) return 'Normal';
-        if ($z_score <= 2) return 'Beresiko Lebih';
-        if ($z_score <= 3) return 'Lebih';
-        return 'Obesitas';
-    }
-
-    private static function categorizeIMT($imt, $category)
-    {
-        // Standar Kemenkes untuk dewasa dan lansia
-        if ($category === 'dewasa' || $category === 'lansia') {
-            if ($imt < 18.5) {
-                return 'Kurus';
-            } elseif ($imt >= 18.5 && $imt < 25.0) {
-                return 'Normal';
-            } elseif ($imt >= 25.0 && $imt < 30.0) {
-                return 'Gemuk';
-            } else {
-                return 'Obesitas';
-            }
+        if ($z_score < -3) {
+            $status = 'Sangat Kurus';
+        } elseif ($z_score < -2) {
+            $status = 'Kurus';
+        } elseif ($z_score <= 1) {
+            $status = 'Normal';
+        } elseif ($z_score <= 2) {
+            $status = 'Beresiko Lebih';
+        } elseif ($z_score <= 3) {
+            $status = 'Lebih';
+        } else {
+            $status = 'Obesitas';
         }
 
-        return 'Kategori tidak valid';
+        return [
+            'status' => $status,
+            'z_score' => round($z_score, 1),
+            'anthropometric_value' => round((float) $actualIMT, 1)
+        ];
     }
 
     private static function calculatePregnantStatus($imt, $lila, $gestationalWeek = null)
     {
-        // Kategori berdasarkan IMT pra-kehamilan
         $imtCategory = self::categorizePregnantIMT($imt);
-
-        // Evaluasi LiLA (KEK - Kurang Energi Kronis)
         $kekStatus = ($lila < 23.5) ? 'KEK' : 'Normal';
 
-        // Gabungkan hasil
-        return self::combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek);
-    }
+        $status = self::combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek);
 
-    private static function categorizePregnantIMT($imt)
-    {
-        if ($imt < 18.5) return 'Kurus';
-        if ($imt < 25.0) return 'Normal';
-        if ($imt < 30.0) return 'Gemuk';
-        return 'Obesitas';
+        return [
+            'status' => $status,
+            'z_score' => null,
+            'anthropometric_value' => round($imt, 1)
+        ];
     }
 
     private static function combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek)
@@ -155,6 +244,31 @@ class NutritionalStatusCalculator
         return $imtCategory . $trimesterSuffix;
     }
 
+    private static function categorizePregnantIMT($imt)
+    {
+        if ($imt < 18.5) return 'Kurus';
+        if ($imt < 25.0) return 'Normal';
+        if ($imt < 30.0) return 'Gemuk';
+        return 'Obesitas';
+    }
+
+    private static function categorizeIMT($imt, $category)
+    {
+        if ($category === 'dewasa' || $category === 'lansia') {
+            if ($imt < 18.5) {
+                return 'Kurus';
+            } elseif ($imt < 25.0) {
+                return 'Normal';
+            } elseif ($imt < 30.0) {
+                return 'Gemuk';
+            } else {
+                return 'Obesitas';
+            }
+        }
+
+        return 'Kategori tidak valid';
+    }
+
     public static function generateRecommendation(Examination $exam)
     {
         $member = $exam->member;
@@ -164,7 +278,6 @@ class NutritionalStatusCalculator
 
         $recommendation = "Hasil pemeriksaan: $status. ";
 
-        // Rekomendasi berdasarkan kategori dan status gizi
         if ($isPregnant) {
             $lila = $exam->arm_circumference;
             $gestationalWeek = $exam->gestational_week;
@@ -172,14 +285,12 @@ class NutritionalStatusCalculator
 
             $recommendation .= "Kehamilan minggu ke-$gestationalWeek (Trimester $trimester). ";
 
-            // Deteksi KEK (Kurang Energi Kronis)
             if (strpos($status, 'KEK') !== false) {
                 $recommendation .= "Lingkar Lengan Atas (LiLA) $lila cm (< 23.5 cm) menunjukkan risiko KEK. ";
                 $recommendation .= "Perbanyak konsumsi makanan tinggi protein dan energi seperti telur, ikan, daging, kacang-kacangan. ";
                 $recommendation .= "Anjurkan suplementasi zat besi dan asam folat. ";
             }
 
-            // Rekomendasi berdasarkan kategori IMT
             if (strpos($status, 'Kurus') !== false) {
                 $recommendation .= "Penambahan berat badan dianjurkan 12.5-18 kg selama kehamilan. ";
                 $recommendation .= "Konsumsi tambahan 340-450 kkal/hari dengan fokus pada protein. ";
@@ -194,7 +305,6 @@ class NutritionalStatusCalculator
                 $recommendation .= "Pantau ketat gula darah dan tekanan darah. ";
             }
 
-            // Rekomendasi umum untuk semua ibu hamil
             $recommendation .= "Lakukan kontrol rutin: ";
             if ($gestationalWeek < 28) {
                 $recommendation .= "setiap 4 minggu. ";
@@ -206,7 +316,6 @@ class NutritionalStatusCalculator
 
             $recommendation .= "Hindari rokok dan alkohol. ";
         } elseif ($category === 'balita') {
-            // Rekomendasi untuk balita
             if (strpos($status, 'Gizi Buruk') !== false) {
                 $recommendation .= "Segera rujuk ke Puskesmas! Berikan makanan tinggi energi dan protein. ";
                 $recommendation .= "Pantau berat badan setiap minggu. Berikan susu terapi gizi. ";
@@ -225,13 +334,11 @@ class NutritionalStatusCalculator
                 $recommendation .= "Batasi susu formula, perbanyak aktivitas fisik. Pantau berat badan setiap bulan. ";
             }
 
-            // Imunisasi
             $ageInMonths = $member->birthdate->diffInMonths(now());
             if ($ageInMonths < 24) {
                 $recommendation .= "Pastikan imunisasi lengkap sesuai usia. ";
             }
         } elseif ($category === 'anak-remaja') {
-            // Rekomendasi untuk anak remaja
             if (strpos($status, 'Kurus') !== false) {
                 $recommendation .= "Tingkatkan asupan kalori dan protein. Makan 3 kali utama + 2-3 kali selingan. ";
                 $recommendation .= "Pilih makanan padat gizi seperti susu, telur, daging, dan kacang-kacangan. ";
@@ -243,10 +350,8 @@ class NutritionalStatusCalculator
                 $recommendation .= "Tingkatkan aktivitas fisik minimal 60 menit/hari. Pantau berat badan bulanan. ";
             }
 
-            // Edukasi khusus remaja
             $recommendation .= "Edukasi pentingnya sarapan dan pola makan teratur. ";
         } elseif ($category === 'dewasa' || $category === 'lansia') {
-            // Rekomendasi untuk dewasa/lansia
             if (strpos($status, 'Kurus') !== false) {
                 $recommendation .= "Tingkatkan asupan kalori dengan makanan padat gizi. ";
                 $recommendation .= "Konsumsi suplemen jika diperlukan. Pantau kemungkinan penyakit kronis. ";
@@ -257,7 +362,6 @@ class NutritionalStatusCalculator
                 $recommendation .= "Pertahankan pola makan gizi seimbang. Lakukan aktivitas fisik teratur. ";
             }
 
-            // Rekomendasi berdasarkan pemeriksaan tambahan
             if ($exam->tension) {
                 [$systolic, $diastolic] = explode('/', $exam->tension);
                 if ($systolic >= 140 || $diastolic >= 90) {
@@ -279,7 +383,6 @@ class NutritionalStatusCalculator
             }
         }
 
-        // Rekomendasi umum untuk semua kategori
         $recommendation .= "Kunjungi Posyandu bulan depan untuk pemantauan lanjutan.";
 
         return $recommendation;

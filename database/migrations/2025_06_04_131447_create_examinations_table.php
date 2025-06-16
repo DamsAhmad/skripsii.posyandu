@@ -26,6 +26,8 @@ return new class extends Migration
             $table->float('cholesterol')->nullable();
             $table->integer('gestational_week')->nullable();
             $table->string('weight_status')->nullable();
+            $table->float('z_score')->nullable();
+            $table->float('anthropometric_value')->nullable();
             $table->text('recommendation')->nullable();
             $table->timestamps();
         });

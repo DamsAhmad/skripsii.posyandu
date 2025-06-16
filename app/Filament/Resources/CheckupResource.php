@@ -20,6 +20,7 @@ class CheckupResource extends Resource
 {
     protected static ?string $model = Checkup::class;
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationGroup = 'Pemeriksaan';
     protected static ?string $navigationLabel = 'Sesi Pemeriksaan';
     protected static ?string $modelLabel = 'Sesi Pemeriksaan';
     protected static ?string $pluralModelLabel = 'Sesi Pemeriksaan';

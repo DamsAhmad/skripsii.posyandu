@@ -21,7 +21,14 @@ class Examination extends Model
         'cholesterol',
         'gestational_week',
         'weight_status',
+        'z_score',
+        'anthropometric_value',
         'recommendation',
+    ];
+
+    protected $casts = [
+        'z_score' => 'float',
+        'anthropometric_value' => 'float',
     ];
 
     public function getTitleAttribute()

@@ -229,14 +229,15 @@ class ExaminationRelationManager extends RelationManager
                         'anak-remaja' => 'success',
                         'dewasa' => 'primary',
                         'lansia' => 'danger',
+                        'ibu hamil' => 'danger',
                     }),
                 Tables\Columns\TextColumn::make('member.birthdate')
-                    ->label('Usia')
+                    ->label('Usia Saat Pemeriksaan')
                     ->state(function ($record) {
                         $birthdate = Carbon::parse($record->member->birthdate);
-                        $now = Carbon::now();
+                        $birthcheck = Carbon::parse($record->checkup->checkup_date);
 
-                        $diff = $birthdate->diff($now);
+                        $diff = $birthdate->diff($birthcheck);
 
                         $years = $diff->y;
                         $months = $diff->m;
@@ -258,14 +259,14 @@ class ExaminationRelationManager extends RelationManager
                 TextColumn::make('height')
                     ->label('TB (cm)'),
 
-                TextColumn::make('head_circumference')
-                    ->label('LK'),
+                // TextColumn::make('head_circumference')
+                //     ->label('LK'),
 
-                TextColumn::make('abdominal_circumference')
-                    ->label('LP'),
+                // TextColumn::make('abdominal_circumference')
+                //     ->label('LP'),
 
-                TextColumn::make('arm_circumference')
-                    ->label('Lila'),
+                // TextColumn::make('arm_circumference')
+                //     ->label('Lila'),
 
                 TextColumn::make('weight_status')
                     ->label('Status Gizi')
@@ -283,21 +284,23 @@ class ExaminationRelationManager extends RelationManager
                     ->modalHeading('Ubah Data Pemeriksaan')
                     ->button()
                     ->after(function (Examination $record, array $data) {
-                        $status = \App\Services\NutritionalStatusCalculator::calculate($record->member, $record);
+                        $status = \App\Services\NutritionalStatusCalculator::generateStatus($record->member, $record);
+                        $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($record->member, $record);
+                        $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($record->member, $record);
                         $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
 
                         $record->update([
                             'weight_status' => $status,
+                            'z_score' => $z_score,
+                            'anthropometric_value' => $anthropometric,
                             'recommendation' => $recommendation,
                         ]);
-
                         \Filament\Notifications\Notification::make()
                             ->title('Status Gizi Diperbarui: ' . $status)
                             ->body($recommendation)
                             ->success()
                             ->send();
                     }),
-
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
                     ->modalHeading('Hapus Data Pemeriksaan')
@@ -312,6 +315,13 @@ class ExaminationRelationManager extends RelationManager
                     ->button()
             ])
             ->headerActions([
+                Tables\Actions\Action::make('print')
+                    ->label('Cetak PDF')
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn() => route('export.examinations', ['checkup' => $this->getOwnerRecord()->id]))
+                    ->openUrlInNewTab(),
+
                 Tables\Actions\Action::make('back')
                     ->label('Kembali ke Daftar Sesi')
                     ->icon('heroicon-o-arrow-left')

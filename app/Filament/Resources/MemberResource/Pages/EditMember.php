@@ -19,8 +19,7 @@ class EditMember extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['category'] = MemberResource::calculateCategory($data['birthdate'] ?? null);
-        return $data;
+        return MemberResource::mutateFormDataBeforeCreate($data);
     }
 
     protected function getRedirectUrl(): string
