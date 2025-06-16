@@ -13,8 +13,7 @@ class CreateMember extends CreateRecord
     protected static ?string $title = 'Tambah Peserta Baru';
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['category'] = MemberResource::calculateCategory($data['birthdate'] ?? null);
-        return $data;
+        return MemberResource::mutateFormDataBeforeCreate($data);
     }
 
     protected function getRedirectUrl(): string

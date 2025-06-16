@@ -24,6 +24,8 @@ use Filament\Tables\Actions\Action;
 use App\Filament\Resources\CheckupResource\RelationManagers\ExaminationRelationManager;
 use Filament\Tables\Filters\SelectFilter;
 use Carbon\Carbon;
+use Filament\Forms\Get;
+use Closure;
 
 class ExaminationResource extends Resource
 {
@@ -64,6 +66,24 @@ class ExaminationResource extends Resource
                         }
                     })
                     ->required()
+                    ->rule(function (Get $get) {
+                        return function (string $attribute, $value, Closure $fail) use ($get) {
+                            $checkupId = $get('checkup_id');
+
+                            if (!$checkupId || !$value) {
+                                return;
+                            }
+
+                            $exists = \App\Models\Examination::where('checkup_id', $checkupId)
+                                ->where('member_id', $value)
+                                ->exists();
+
+                            if ($exists) {
+                                $fail("Nama sudah ditemukan di sesi pemeriksaan ini.");
+                            }
+                        };
+                    })
+
                     ->createOptionForm([
                         Fieldset::make('Data Peserta Baru')->schema([
                             TextInput::make('member_name')
@@ -76,39 +96,60 @@ class ExaminationResource extends Resource
                                     'Laki-laki' => 'Laki-laki',
                                     'Perempuan' => 'Perempuan',
                                 ])
-                                ->required(),
+                                ->required()
+                                ->reactive(),
 
                             TextInput::make('birthdate')
                                 ->label('Tanggal Lahir')
                                 ->type('date')
-                                ->required(),
+                                ->required()
+                                ->reactive(),
 
                             TextInput::make('birthplace')
                                 ->label('Tempat Lahir')
                                 ->required(),
+
+                            Select::make('is_pregnant')
+                                ->label('Sedang hamil?')
+                                ->options([
+                                    false => 'Tidak',
+                                    true => 'Ya',
+                                ])
+                                ->native(false)
+                                ->default(false)
+                                ->reactive()
+                                ->hidden(function ($get) {
+                                    $gender = $get('gender');
+                                    $birthdate = $get('birthdate');
+
+                                    if (!$gender || !$birthdate) return true;
+
+                                    try {
+                                        $months = \Carbon\Carbon::parse($birthdate)->diffInMonths(now());
+                                    } catch (\Exception $e) {
+                                        return true;
+                                    }
+
+                                    return $gender !== 'Perempuan' || $months < 180 || $months > 600;
+                                })
+
                         ])
                     ])
+
                     ->createOptionAction(
                         fn($action) => $action->label('Tambah Peserta Baru'),
                     )
                     ->createOptionUsing(function (array $data) {
-                        $birthdate = \Carbon\Carbon::parse($data['birthdate']);
-                        $ageInMonths = $birthdate->diffInMonths(now());
-                        $ageInYears = $birthdate->age;
+                        $data['is_pregnant'] = filter_var($data['is_pregnant'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-                        if ($ageInMonths <= 24) {
-                            $data['category'] = 'balita-0-24';
-                        } elseif ($ageInMonths <= 59) {
-                            $data['category'] = 'balita-25-59';
-                        } elseif ($ageInYears <= 18) {
-                            $data['category'] = 'anak-remaja';
-                        } elseif ($ageInYears <= 59) {
-                            $data['category'] = 'dewasa';
-                        } else {
-                            $data['category'] = 'lansia';
-                        }
+                        $data['category'] = \App\Filament\Resources\MemberResource::calculateCategory(
+                            $data['birthdate'],
+                            $data['gender'] ?? null,
+                            $data['is_pregnant']
+                        );
 
                         $member = \App\Models\Member::create($data);
+
                         return $member->id;
                     }),
 
@@ -148,6 +189,7 @@ class ExaminationResource extends Resource
                             case 'anak-remaja':
                             case 'dewasa':
                             case 'lansia':
+                            case 'ibu hamil':
                                 $fields[] = TextInput::make('abdominal_circumference')
                                     ->label('Lingkar Perut (cm)')
                                     ->numeric()
@@ -163,7 +205,7 @@ class ExaminationResource extends Resource
                                         'regex' => 'Format harus seperti 120/80',
                                     ]);
 
-                                if (in_array($category, ['dewasa', 'lansia'])) {
+                                if (in_array($category, ['dewasa', 'lansia', 'ibu hamil'])) {
                                     $fields[] = TextInput::make('uric_acid')
                                         ->label('Asam Urat (mg/dL)')
                                         ->numeric()
@@ -342,6 +384,8 @@ class ExaminationResource extends Resource
             ->title('Status Gizi: ' . $status)
             ->body($recommendation)
             ->success()
+            ->duration(0)
+            ->persistent()
             ->send();
     }
 

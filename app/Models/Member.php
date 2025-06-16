@@ -26,6 +26,6 @@ class Member extends Model
 
     public function examinations()
     {
-        return $this->hasMany(\App\Models\Examination::class);
+        return $this->hasMany(Examination::class);
     }
 }

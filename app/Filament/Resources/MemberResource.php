@@ -17,12 +17,14 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+// use App\Filament\Resources\Pages\MemberResource\Pages\MemberProfile;
 use Filament\Support\Enums\IconPosition;
 
 class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
-    protected static ?string $navigationLabel = 'Data Peserta';
+    protected static ?string $navigationGroup = 'Data Peserta';
+    protected static ?string $navigationLabel = 'Data Peserta Total';
     protected static ?int $navigationSort = 0;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $slug = 'DataPeserta';
@@ -45,14 +47,32 @@ class MemberResource extends Resource
                             'Laki-laki' => 'Laki-laki',
                             'Perempuan' => 'Perempuan',
                         ])
-                        ->required(),
+                        ->required()
+                        ->reactive(),
                     Forms\Components\DatePicker::make('birthdate')
                         ->label('Tanggal Lahir')
-                        ->required(),
+                        ->required()
+                        ->reactive(),
                     Forms\Components\TextInput::make('birthplace')
                         ->label('Tempat Lahir')
                         ->placeholder('Misal: Jakarta atau Sleman')
                         ->required(),
+                    Forms\Components\Select::make('is_pregnant')
+                        ->label('Sedang hamil?')
+                        ->options([
+                            false => 'Tidak',
+                            true => 'Ya',
+                        ])
+                        ->native(false) // tampilkan sebagai dropdown stylish
+                        ->required()
+                        ->default(false)
+                        ->hidden(
+                            fn($get) =>
+                            $get('gender') !== 'Perempuan' ||
+                                Carbon::parse($get('birthdate'))->diffInMonths(Carbon::now()) < 180 ||
+                                Carbon::parse($get('birthdate'))->diffInMonths(Carbon::now()) > 600
+                        ),
+
                 ])
             ]);
     }
@@ -73,6 +93,7 @@ class MemberResource extends Resource
                         'anak-remaja' => 'success',
                         'dewasa' => 'primary',
                         'lansia' => 'danger',
+                        'ibu hamil' => 'danger',
                     }),
                 Tables\Columns\TextColumn::make('gender')
                     ->label('Jenis Kelamin')
@@ -107,9 +128,17 @@ class MemberResource extends Resource
                         'ANAK-REMAJA' => 'anak-Remaja',
                         'DEWASA' => 'dewasa',
                         'LANSIA' => 'lansia',
+                        'IBU HAMIL' => 'ibu hamil'
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('lihat_profil')
+                    ->label('Profil')
+                    ->url(fn($record) => MemberResource::getUrl('view', ['record' => $record]))
+                    ->color('info')
+                    ->icon('heroicon-o-user')
+                    ->iconPosition(IconPosition::After)
+                    ->button(),
                 Tables\Actions\EditAction::make()
                     ->iconPosition(IconPosition::After)
                     ->button(),
@@ -130,41 +159,45 @@ class MemberResource extends Resource
         // ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function calculateCategory($birthdate): string
+    public static function calculateCategory($birthdate,  $gender = null, $isPregnant = false): string
     {
         $birth = Carbon::parse($birthdate);
         $ageInMonths = $birth->diffInMonths(Carbon::now());
 
-        if ($ageInMonths <= 60) { // 5 tahun = 60 bulan
+        if ($isPregnant && $gender === 'Perempuan' && $ageInMonths >= 180 && $ageInMonths <= 600) {
+            return 'ibu hamil';
+        }
+        if ($ageInMonths <= 60) {
             return 'balita';
-        } elseif ($ageInMonths <= 228) { // 19 tahun = 228 bulan
+        } elseif ($ageInMonths <= 228) {
             return 'anak-remaja';
-        } elseif ($ageInMonths <= 720) { // 60 tahun = 720 bulan
+        } elseif ($ageInMonths <= 720) {
             return 'dewasa';
         } else {
             return 'lansia';
         }
     }
+
     public static function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['category'] = self::calculateCategory($data['birthdate']);
+        $data['is_pregnant'] = filter_var($data['is_pregnant'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $data['category'] = self::calculateCategory($data['birthdate'], $data['gender'] ?? null, $data['is_pregnant']);
         return $data;
     }
 
     public static function mutateFormDataBeforeSave(array $data): array
     {
-        $data['category'] = self::calculateCategory($data['birthdate']);
+        $data['is_pregnant'] = filter_var($data['is_pregnant'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $data['category'] = self::calculateCategory($data['birthdate'], $data['gender'] ?? null, $data['is_pregnant']);
         return $data;
     }
 
-
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Resources\MemberResource\Widgets\MemberCharts::class,
+        ];
+    }
 
     public static function getPages(): array
     {
