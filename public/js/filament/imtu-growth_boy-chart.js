@@ -1,21 +1,24 @@
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("imtuBoyChart");
-
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     const memberName = canvas.dataset.memberName || "Data Anak-Remaja";
 
+    const raw = document.getElementById("imtuBoyChart").dataset.points;
+    console.log("RAW:", raw);
+
     let points = [];
     try {
-        points = JSON.parse(canvas.dataset.points || "[]");
+        points = JSON.parse(raw);
+        console.log("Parsed points:", points);
     } catch (e) {
-        console.warn("Data points tidak valid");
+        console.error("JSON parse error:", e.message);
     }
 
     const imtData = points.map((dp) => ({
-        x: parseFloat(dp.age),
-        y: parseFloat(dp.imt),
+        x: parseFloat(dp.x),
+        y: parseFloat(dp.y),
     }));
 
     const whoAges = Array.from(
@@ -133,6 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
         borderWidth: 2,
     });
     console.log("IMT Data:", imtData);
+
     new Chart(ctx, {
         type: "line",
         data: {
