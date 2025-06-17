@@ -28,18 +28,36 @@ class ViewMember extends ViewRecord
     {
         return [
             Action::make('Lihat Grafik')
-                ->url(fn() => route('bbu-chart.show', ['id' => $this->record->id]))
+                ->url(function () {
+                    $category = $this->record->category;
+                    $gender = $this->record->gender;
+
+                    return match (true) {
+                        $category === 'balita' && $gender === 'Laki-laki'     => route('bbuboy-chart.show', ['id' => $this->record->id]),
+                        $category === 'balita' && $gender === 'Perempuan'     => route('bbugirl-chart.show', ['id' => $this->record->id]),
+                        $category === 'anak-remaja' && $gender === 'Laki-laki' => route('imtuboy-chart.show', ['id' => $this->record->id]),
+                        $category === 'anak-remaja' && $gender === 'Perempuan' => route('imtugirl-chart.show', ['id' => $this->record->id]),
+                        in_array($category, ['dewasa', 'lansia', 'ibu hamil'])             => route('imtadult-chart.show', ['id' => $this->record->id]),
+                        $category === 'ibu hamil' && $gender === 'Perempuan'  => route('pregnant-chart.show', ['id' => $this->record->id]),
+                        default => null,
+                    };
+                })
                 ->icon('heroicon-o-chart-bar')
                 ->color('info')
+                ->hidden(function () {
+                    $category = $this->record->category;
+                    $gender = $this->record->gender;
+
+                    return ! (
+                        ($category === 'balita' && in_array($gender, ['Laki-laki', 'Perempuan'])) ||
+                        ($category === 'anak-remaja' && in_array($gender, ['Laki-laki', 'Perempuan'])) ||
+                        in_array($category, ['dewasa', 'lansia']) ||
+                        ($category === 'ibu hamil' && $gender === 'Perempuan')
+                    );
+                }),
         ];
     }
 
-    // protected function getHeaderWidgets(): array
-    // {
-    //     return [
-    //         MemberCharts::make(['memberId' => $this->record->id]),
-    //     ];
-    // }
 
     public function form(Form $form): Form
     {
