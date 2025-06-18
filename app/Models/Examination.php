@@ -61,12 +61,23 @@ class Examination extends Model
         static::saving(function ($exam) {
             logger('Saving Examination ID: ' . $exam->id);
 
-            if ($exam->member) {
-                $result = NutritionalStatusCalculator::calculate($exam->member, $exam);
-                $exam->weight_status = $result['status'];
-                $exam->z_score = $result['z_score'];
-                $exam->anthropometric_value = $result['anthropometric_value'];
+            if (!$exam->relationLoaded('member')) {
+                $exam->load('member');
             }
+
+            if (!$exam->member) {
+                logger('Member masih null meskipun di-load');
+                return;
+            }
+
+            logger('Member ID: ' . $exam->member->id);
+
+            $result = NutritionalStatusCalculator::calculate($exam->member, $exam);
+            logger('Calculated Result: ' . json_encode($result));
+
+            $exam->weight_status = $result['status'];
+            $exam->z_score = $result['z_score'];
+            $exam->anthropometric_value = $result['anthropometric_value'];
         });
     }
 }

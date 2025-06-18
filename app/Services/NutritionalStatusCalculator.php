@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\Examination;
 use App\Models\GrowthReference;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 
 class NutritionalStatusCalculator
@@ -227,17 +228,24 @@ class NutritionalStatusCalculator
 
         if ($z_score < -3) {
             $status = 'Sangat Kurus';
-        } elseif ($z_score < -2) {
+        } elseif ($z_score >= -3 && $z_score < -2) {
             $status = 'Kurus';
-        } elseif ($z_score <= 1) {
+        } elseif ($z_score >= -2 && $z_score <= 1) {
             $status = 'Normal';
-        } elseif ($z_score <= 2) {
-            $status = 'Beresiko Lebih';
-        } elseif ($z_score <= 3) {
-            $status = 'Lebih';
+        } elseif ($z_score > 1 && $z_score <= 2) {
+            $status = 'Risiko Gizi Lebih';
+        } elseif ($z_score > 2 && $z_score <= 3) {
+            $status = 'Gizi Lebih';
         } else {
             $status = 'Obesitas';
         }
+
+        Log::debug("Reference Data:", [
+            'ageMonths' => $ageMonths,
+            'gender' => $gender,
+            'reference' => $reference,
+            'actualIMT' => $actualIMT,
+        ]);
 
         return [
             'status' => $status,

@@ -137,6 +137,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     console.log("IMT Data:", imtData);
 
+    function findClosestIndex(array, target) {
+        let closestIndex = 0;
+        let minDiff = Infinity;
+
+        array.forEach((val, i) => {
+            const diff = Math.abs(val - target);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIndex = i;
+            }
+        });
+
+        return closestIndex;
+    }
+
     new Chart(ctx, {
         type: "line",
         data: {
@@ -196,9 +211,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             const y = context[0].parsed.y;
 
                             if (datasetLabel === "IMT Anak (kg/m²)") {
-                                const ageIndex = whoAges.findIndex(
-                                    (age) => age === x
-                                );
+                                const ageIndex = findClosestIndex(whoAges, x);
 
                                 const zScores = {
                                     "-3": whoCurves["-3"]?.[ageIndex],
