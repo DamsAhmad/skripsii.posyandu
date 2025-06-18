@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\NutritionalStatusCalculator;
 
 
 class Examination extends Model
@@ -36,6 +37,15 @@ class Examination extends Model
         return 'Pemeriksaan pada ' . $this->created_at->format('d M Y');
     }
 
+    public function getCheckupDateAttribute()
+    {
+        if ($this->relationLoaded('checkup')) {
+            return $this->checkup->checkup_date;
+        }
+
+        return null;
+    }
+
     public function checkup()
     {
         return $this->belongsTo(Checkup::class);
@@ -46,14 +56,17 @@ class Examination extends Model
         return $this->belongsTo(Member::class);
     }
 
-    // public static function boot()
-    // {
-    //     parent::boot();
+    protected static function booted()
+    {
+        static::saving(function ($exam) {
+            logger('Saving Examination ID: ' . $exam->id);
 
-    //     static::creating(function ($model) {
-    //         if (!$model->checkup_id) {
-    //             throw new \Exception('Sesi pemeriksaan tidak valid');
-    //         }
-    //     });
-    // }
+            if ($exam->member) {
+                $result = NutritionalStatusCalculator::calculate($exam->member, $exam);
+                $exam->weight_status = $result['status'];
+                $exam->z_score = $result['z_score'];
+                $exam->anthropometric_value = $result['anthropometric_value'];
+            }
+        });
+    }
 }

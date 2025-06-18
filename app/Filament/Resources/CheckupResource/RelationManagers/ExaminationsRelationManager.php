@@ -19,6 +19,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
+use Illuminate\Support\Facades\Log;
+
 
 use App\Models\Examination;
 use App\Models\Member;
@@ -211,6 +213,8 @@ class ExaminationRelationManager extends RelationManager
     public function table(Tables\Table $table): Tables\Table
     {
         return $table
+            ->modifyQueryUsing(fn($query) => $query->with(['member', 'checkup']))
+
             ->heading('Data Pemeriksaan')
             ->columns([
                 TextColumn::make('member.member_name')
@@ -234,8 +238,11 @@ class ExaminationRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('member.birthdate')
                     ->label('Usia Saat Pemeriksaan')
                     ->state(function ($record) {
+                        // $birthdate = Carbon::parse($record->member->birthdate);
+                        // $birthcheck = Carbon::parse($record->checkup->checkup_date);
+
                         $birthdate = Carbon::parse($record->member->birthdate);
-                        $birthcheck = Carbon::parse($record->checkup->checkup_date);
+                        $birthcheck = Carbon::parse($record->checkup_date);
 
                         $diff = $birthdate->diff($birthcheck);
 
@@ -284,6 +291,10 @@ class ExaminationRelationManager extends RelationManager
                     ->modalHeading('Ubah Data Pemeriksaan')
                     ->button()
                     ->after(function (Examination $record, array $data) {
+                        if (!$record->relationLoaded('checkup')) {
+                            $record->load('checkup');
+                        }
+
                         $status = \App\Services\NutritionalStatusCalculator::generateStatus($record->member, $record);
                         $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($record->member, $record);
                         $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($record->member, $record);

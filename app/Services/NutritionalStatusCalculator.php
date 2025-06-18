@@ -5,13 +5,17 @@ namespace App\Services;
 use App\Models\Member;
 use App\Models\Examination;
 use App\Models\GrowthReference;
+use Carbon\Carbon;
 
 
 class NutritionalStatusCalculator
 {
     public static function calculate(Member $member, Examination $exam)
     {
-        $ageInMonths = $member->birthdate->diffInMonths(now());
+        // $ageInMonths = $member->birthdate->diffInMonths(now());
+
+        $checkupDate = self::getCheckupDate($exam);
+        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
 
         if (!$exam->weight || !$exam->height) {
             return [
@@ -57,6 +61,9 @@ class NutritionalStatusCalculator
 
     public static function generateStatus(Member $member, Examination $exam): string
     {
+
+        $checkupDate = self::getCheckupDate($exam);
+
         if (!$exam->weight || !$exam->height) {
             return 'Data tidak lengkap';
         }
@@ -69,14 +76,17 @@ class NutritionalStatusCalculator
         }
 
         if ($member->category === 'balita') {
-            $result = self::calculateWeightForAge($member->birthdate->diffInMonths(now()), $exam->weight, $member->gender);
+            $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+            $result = self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
             return $result['status'];
         }
 
         if ($member->category === 'anak-remaja') {
-            $result = self::calculateIMTForAge($member->birthdate->diffInMonths(now()), $exam->weight, $exam->height, $member->gender);
+            $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+            $result = self::calculateIMTForAge($ageInMonths, $exam->weight, $exam->height, $member->gender);
             return $result['status'];
         }
+
 
         if (in_array($member->category, ['dewasa', 'lansia'])) {
             $heightInMeters = $exam->height / 100;
@@ -89,6 +99,9 @@ class NutritionalStatusCalculator
 
     public static function generateZscore(Member $member, Examination $exam): ?float
     {
+        $checkupDate = self::getCheckupDate($exam);
+        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+
         if (!$exam->weight || !$exam->height) return null;
         if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) return null;
 
@@ -107,6 +120,19 @@ class NutritionalStatusCalculator
         return null;
     }
 
+    private static function getCheckupDate(Examination $exam): Carbon
+    {
+        if ($exam->relationLoaded('checkup') && $exam->checkup) {
+            return Carbon::parse($exam->checkup->checkup_date);
+        }
+
+        if ($exam->checkup_date) {
+            return Carbon::parse($exam->checkup_date);
+        }
+
+        return now();
+    }
+
     public static function generateAnthropometric(Member $member, Examination $exam): ?float
     {
         if (!$exam->weight || !$exam->height) return null;
@@ -116,7 +142,8 @@ class NutritionalStatusCalculator
             return $exam->weight / ($heightInMeters * $heightInMeters);
         }
 
-        $ageInMonths = $member->birthdate->diffInMonths(now());
+        $checkupDate = self::getCheckupDate($exam);
+        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
 
         if ($member->category === 'balita') {
             return (float) $exam->weight;
