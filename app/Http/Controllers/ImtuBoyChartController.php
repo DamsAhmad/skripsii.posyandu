@@ -10,29 +10,38 @@ class ImtuBoyChartController extends Controller
 {
     public function show($id)
     {
-        $member = Member::with('examinations')->findOrFail($id);
-        // dd($member->examinations);
-        // dd($member->birthdate);
+        $member = Member::with(['examinations.checkup'])->findOrFail($id);
+
         $dataPoints = $member->examinations
-            ->sortBy('created_at')
+            ->sortBy(function ($examination) {
+                return optional($examination->checkup)->checkup_date;
+            })
             ->filter(function ($examination) {
-                return $examination->created_at && $examination->anthropometric_value;
+                return $examination->checkup && $examination->anthropometric_value;
             })
             ->map(function ($examination) use ($member) {
-                try {
-                    $birth = Carbon::parse($member->birthdate);
-                    $checkup = Carbon::parse($examination->created_at);
+                $birth = Carbon::parse($member->birthdate);
+                $checkupDate = optional($examination->checkup)->checkup_date;
 
-                    $ageInMonths = $birth->diffInMonths($checkup);
-                    $ageInYears = round($ageInMonths / 12, 2);
-                    $imt = round($examination->anthropometric_value, 1);
-
-                    return ['x' => $ageInYears, 'y' => $imt];
-                } catch (\Exception $e) {
+                if (!$checkupDate) {
+                    logger("Missing checkup_date for examination ID {$examination->id}");
                     return null;
                 }
+
+                $checkupDate = Carbon::parse($checkupDate);
+                $ageInMonths = $birth->diffInMonths($checkupDate);
+                $ageInYears = round($ageInMonths / 12, 2);
+
+                $imt = round((float) $examination->anthropometric_value, 1);
+
+                if (!is_numeric($ageInYears) || !is_numeric($imt)) {
+                    logger("NaN Detected - Age: {$ageInYears}, IMT: {$imt}");
+                    return null;
+                }
+
+                return ['x' => $ageInYears, 'y' => $imt];
             })
-            ->filter() // buang yang null
+            ->filter()
             ->values();
 
         return view('imtuboy-chart', [

@@ -45,8 +45,8 @@ class CreateExamination extends CreateRecord
 
     protected function afterCreate(): void
     {
-        Log::info('AFTER CREATE DIPANGGIL');
         $record = $this->record;
+        $record->load('checkup');
 
         try {
             $member = $record->member;
@@ -62,8 +62,6 @@ class CreateExamination extends CreateRecord
                 'anthropometric_value' => $anthropometric_value,
                 'recommendation' => $recommendation,
             ]);
-
-            Log::info('RECORD AFTER UPDATE:', $record->fresh()->toArray());
 
             Notification::make()
                 ->title('Status Gizi: ' . $status)

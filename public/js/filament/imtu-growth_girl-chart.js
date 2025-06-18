@@ -1,69 +1,99 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const canvas = document.getElementById("bbuChart");
+    const canvas = document.getElementById("imtuGirlChart");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const memberName = canvas.dataset.memberName || "Data Anak";
-    const weights = JSON.parse(canvas.dataset.weights || "[]");
-    const weightData = weights.map((dp) => ({ x: dp.age, y: dp.weight }));
+    const memberName = canvas.dataset.memberName || "Data Anak-Remaja";
 
-    const whoAges = Array.from({ length: 61 }, (_, i) => i);
+    const raw = document.getElementById("imtuGirlChart").dataset.points;
+    console.log("RAW:", raw);
+
+    let points = [];
+    try {
+        points = JSON.parse(raw);
+        console.log("Parsed points:", points);
+    } catch (e) {
+        console.error("JSON parse error:", e.message);
+    }
+
+    const imtData = points.map((dp) => ({
+        x: parseFloat(dp.x),
+        y: parseFloat(dp.y),
+    }));
+
+    const whoAges = Array.from(
+        { length: (19 - 5) * 4 + 1 },
+        (_, i) => 5 + i * 0.25
+    );
 
     const whoCurves = {
         "-3": [
-            2.1, 2.9, 3.9, 4.6, 5.2, 5.6, 5.9, 6.2, 6.4, 6.5, 6.7, 6.8, 6.9,
-            7.1, 7.2, 7.3, 7.5, 7.6, 7.7, 7.9, 8.0, 8.1, 8.3, 8.4, 8.5, 8.7,
-            8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.6, 9.7, 9.8, 9.9, 10.0, 10.1, 10.3,
-            10.4, 10.5, 10.6, 10.7, 10.8, 10.9, 11.0, 11.1, 11.2, 11.3, 11.4,
-            11.5, 11.6, 11.7, 11.8, 11.9, 12.0, 12.1, 12.2, 12.3, 12.4, 12.5,
+            11.77, 11.757, 11.742, 11.73, 11.723, 11.721, 11.725, 11.735,
+            11.751, 11.774, 11.803, 11.838, 11.879, 11.927, 11.98, 12.037,
+            12.099, 12.163, 12.231, 12.302, 12.378, 12.458, 12.542, 12.632,
+            12.727, 12.827, 12.931, 13.04, 13.151, 13.265, 13.379, 13.494,
+            13.606, 13.717, 13.824, 13.927, 14.026, 14.119, 14.207, 14.288,
+            14.362, 14.429, 14.488, 14.541, 14.586, 14.625, 14.656, 14.682,
+            14.701, 14.716, 14.725, 14.731, 14.734, 14.735, 14.733, 14.729,
+            14.724,
         ],
         "-2": [
-            2.5, 3.4, 4.5, 5.3, 5.9, 6.4, 6.7, 7.0, 7.2, 7.4, 7.5, 7.7, 7.8,
-            8.0, 8.1, 8.2, 8.4, 8.5, 8.6, 8.8, 8.9, 9.1, 9.2, 9.3, 9.5, 9.6,
-            9.7, 9.9, 10.0, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8,
-            11.0, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.9, 12.0,
-            12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 12.9, 13.0, 13.1,
-            13.2, 13.3,
+            12.748, 12.734, 12.718, 12.706, 12.7, 12.699, 12.704, 12.716,
+            12.735, 12.762, 12.795, 12.836, 12.884, 12.94, 13.001, 13.068,
+            13.14, 13.216, 13.296, 13.38, 13.47, 13.565, 13.666, 13.772, 13.885,
+            14.004, 14.129, 14.258, 14.391, 14.526, 14.663, 14.8, 14.936, 15.07,
+            15.2, 15.327, 15.448, 15.564, 15.674, 15.776, 15.871, 15.958,
+            16.037, 16.108, 16.172, 16.228, 16.277, 16.318, 16.354, 16.384,
+            16.409, 16.431, 16.448, 16.463, 16.477, 16.488, 16.497,
         ],
         "-1": [
-            2.9, 3.9, 5.1, 6.0, 6.6, 7.1, 7.5, 7.7, 8.0, 8.2, 8.4, 8.6, 8.7,
-            8.9, 9.1, 9.2, 9.4, 9.5, 9.7, 9.8, 10.0, 10.1, 10.3, 10.4, 10.5,
-            10.6, 10.8, 10.9, 11.0, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7,
-            11.8, 11.9, 12.0, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 12.9,
-            13.0, 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9, 14.0,
-            14.1, 14.2, 14.3,
+            13.891, 13.881, 13.869, 13.863, 13.862, 13.867, 13.879, 13.899,
+            13.927, 13.963, 14.007, 14.059, 14.12, 14.188, 14.264, 14.346,
+            14.434, 14.527, 14.625, 14.729, 14.838, 14.954, 15.076, 15.206,
+            15.343, 15.487, 15.637, 15.793, 15.953, 16.117, 16.282, 16.448,
+            16.612, 16.775, 16.934, 17.088, 17.238, 17.38, 17.516, 17.644,
+            17.764, 17.874, 17.976, 18.069, 18.153, 18.229, 18.297, 18.357,
+            18.411, 18.458, 18.499, 18.537, 18.571, 18.601, 18.63, 18.657,
+            18.681,
         ],
         Median: [
-            3.2, 4.2, 5.4, 6.4, 7.0, 7.5, 7.9, 8.2, 8.4, 8.6, 8.8, 9.0, 9.2,
-            9.4, 9.6, 9.7, 9.9, 10.1, 10.2, 10.4, 10.6, 10.8, 10.9, 11.1, 11.3,
-            11.4, 11.6, 11.7, 11.9, 12.0, 12.1, 12.2, 12.3, 12.5, 12.6, 12.7,
-            12.8, 13.0, 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9,
-            14.0, 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 14.9, 15.0,
-            15.1, 15.2, 15.3,
+            15.244, 15.243, 15.246, 15.255, 15.27, 15.291, 15.32, 15.357,
+            15.404, 15.459, 15.524, 15.598, 15.681, 15.773, 15.874, 15.982,
+            16.096, 16.217, 16.343, 16.475, 16.613, 16.76, 16.914, 17.076,
+            17.246, 17.424, 17.609, 17.8, 17.997, 18.197, 18.399, 18.601,
+            18.801, 18.999, 19.193, 19.382, 19.565, 19.74, 19.907, 20.065,
+            20.212, 20.35, 20.477, 20.594, 20.701, 20.798, 20.886, 20.966,
+            21.037, 21.101, 21.159, 21.212, 21.26, 21.306, 21.348, 21.388,
+            21.427,
         ],
         "+1": [
-            3.6, 4.7, 6.0, 7.0, 7.7, 8.2, 8.6, 9.0, 9.2, 9.5, 9.7, 9.9, 10.1,
-            10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.7, 11.9, 12.1, 12.3,
-            12.5, 12.6, 12.8, 13.0, 13.2, 13.3, 13.5, 13.6, 13.8, 14.0, 14.1,
-            14.3, 14.4, 14.6, 14.7, 14.9, 15.0, 15.1, 15.3, 15.4, 15.6, 15.7,
-            15.8, 16.0, 16.1, 16.2, 16.3, 16.5, 16.6, 16.7, 16.8, 17.0, 17.1,
-            17.2, 17.3, 17.4, 17.5,
+            16.87, 16.889, 16.923, 16.964, 17.011, 17.067, 17.131, 17.204,
+            17.289, 17.383, 17.488, 17.604, 17.73, 17.866, 18.012, 18.166,
+            18.326, 18.493, 18.666, 18.846, 19.032, 19.226, 19.429, 19.639,
+            19.859, 20.086, 20.32, 20.561, 20.806, 21.055, 21.305, 21.554, 21.8,
+            22.042, 22.279, 22.509, 22.731, 22.943, 23.145, 23.336, 23.514,
+            23.679, 23.832, 23.972, 24.101, 24.218, 24.324, 24.418, 24.503,
+            24.58, 24.649, 24.712, 24.769, 24.823, 24.873, 24.92, 24.965,
         ],
         "+2": [
-            4.1, 5.3, 6.7, 7.8, 8.5, 9.1, 9.6, 10.0, 10.3, 10.6, 10.8, 11.0,
-            11.3, 11.5, 11.7, 11.9, 12.1, 12.3, 12.5, 12.7, 12.9, 13.1, 13.3,
-            13.5, 13.7, 13.9, 14.1, 14.3, 14.5, 14.6, 14.8, 15.0, 15.2, 15.4,
-            15.5, 15.7, 15.9, 16.0, 16.2, 16.4, 16.5, 16.7, 16.8, 17.0, 17.1,
-            17.3, 17.4, 17.6, 17.7, 17.9, 18.0, 18.2, 18.3, 18.5, 18.6, 18.7,
-            18.9, 19.0, 19.1, 19.2, 19.3,
+            18.858, 18.915, 19.009, 19.112, 19.224, 19.347, 19.482, 19.628,
+            19.789, 19.963, 20.149, 20.349, 20.561, 20.784, 21.019, 21.263,
+            21.513, 21.77, 22.031, 22.298, 22.57, 22.849, 23.134, 23.426,
+            23.725, 24.029, 24.338, 24.651, 24.967, 25.282, 25.596, 25.905,
+            26.207, 26.501, 26.786, 27.06, 27.321, 27.57, 27.804, 28.023,
+            28.224, 28.411, 28.58, 28.734, 28.873, 28.996, 29.105, 29.201,
+            29.283, 29.355, 29.418, 29.472, 29.52, 29.564, 29.602, 29.637,
+            29.67,
         ],
         "+3": [
-            4.6, 6.0, 7.5, 8.7, 9.4, 10.1, 10.6, 11.0, 11.4, 11.7, 12.0, 12.3,
-            12.5, 12.8, 13.0, 13.3, 13.5, 13.8, 14.0, 14.3, 14.5, 14.8, 15.0,
-            15.3, 15.5, 15.7, 16.0, 16.2, 16.4, 16.6, 16.8, 17.0, 17.2, 17.4,
-            17.6, 17.7, 17.9, 18.1, 18.3, 18.5, 18.6, 18.8, 19.0, 19.1, 19.3,
-            19.5, 19.6, 19.8, 20.0, 20.1, 20.3, 20.4, 20.6, 20.7, 20.9, 21.0,
-            21.2, 21.3, 21.4, 21.5, 21.6,
+            21.34, 21.468, 21.673, 21.895, 22.133, 22.391, 22.668, 22.966,
+            23.287, 23.629, 23.994, 24.377, 24.781, 25.2, 25.638, 26.085,
+            26.539, 26.998, 27.459, 27.918, 28.378, 28.834, 29.29, 29.742,
+            30.189, 30.63, 31.064, 31.493, 31.91, 32.316, 32.708, 33.083,
+            33.439, 33.775, 34.092, 34.387, 34.66, 34.914, 35.145, 35.354,
+            35.538, 35.703, 35.844, 35.964, 36.066, 36.146, 36.209, 36.254,
+            36.281, 36.296, 36.299, 36.293, 36.279, 36.261, 36.235, 36.209,
+            36.179,
         ],
     };
 
@@ -89,7 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const datasets = Object.entries(whoCurves).map(([key, values]) => ({
         label: labelMap[key] || `${key} SD`,
-        data: values.map((y, x) => ({ x, y })),
+        data: whoAges.map((age, i) => ({ x: age, y: values[i] })),
         borderColor: colorMap[key],
         backgroundColor: colorMap[key],
         pointRadius: 0,
@@ -99,14 +129,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }));
 
     datasets.push({
-        label: "Berat Anak (Kg)",
-        data: weightData,
+        label: "IMT Anak (kg/m²)",
+        data: imtData,
         borderColor: "black",
         backgroundColor: "black",
         pointRadius: 4,
         tension: 0.4,
         borderWidth: 2,
     });
+    console.log("IMT Data:", imtData);
+
+    function findClosestIndex(array, target) {
+        let closestIndex = 0;
+        let minDiff = Infinity;
+
+        array.forEach((val, i) => {
+            const diff = Math.abs(val - target);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIndex = i;
+            }
+        });
+
+        return closestIndex;
+    }
 
     new Chart(ctx, {
         type: "line",
@@ -119,26 +165,37 @@ document.addEventListener("DOMContentLoaded", function () {
             scales: {
                 x: {
                     type: "linear",
-                    title: { display: true, text: "Usia (bulan)" },
-                    font: {
-                        size: 15,
-                        weight: "bold",
+                    min: 5,
+                    max: 19,
+                    title: {
+                        display: true,
+                        text: "Usia (tahun)",
+                    },
+                    ticks: {
+                        stepSize: 0.25,
+                        callback: function (val) {
+                            const tahun = Math.floor(val);
+                            const bulan = Math.round((val - tahun) * 12);
+                            return bulan === 0
+                                ? `${tahun} th`
+                                : `${tahun} th ${bulan} bln`;
+                        },
                     },
                 },
                 y: {
-                    title: { display: true, text: "Berat Badan (kg)" },
-                    min: 2,
-                    max: 28,
-                    font: {
-                        size: 15,
-                        weight: "bold",
+                    title: { display: true, text: "IMT (kg/m²)" },
+                    min: 10,
+                    max: 38,
+                    ticks: {
+                        stepSize: 2,
                     },
                 },
             },
+
             plugins: {
                 title: {
                     display: true,
-                    text: `Grafik KMS: BB/U - ${memberName}`,
+                    text: `Grafik IMT/U - ${memberName}`,
                     font: {
                         size: 20,
                         weight: "bold",
@@ -155,19 +212,17 @@ document.addEventListener("DOMContentLoaded", function () {
                             const x = context[0].parsed.x;
                             const y = context[0].parsed.y;
 
-                            if (datasetLabel === "Berat Anak (Kg)") {
-                                const age = Math.round(x); // usia dalam bulan dibulatkan
-                                const weight = y;
+                            if (datasetLabel === "IMT Anak (kg/m²)") {
+                                const ageIndex = findClosestIndex(whoAges, x);
 
-                                // Ambil semua batas Z-score untuk usia tersebut
                                 const zScores = {
-                                    "-3": whoCurves["-3"]?.[age],
-                                    "-2": whoCurves["-2"]?.[age],
-                                    "-1": whoCurves["-1"]?.[age],
-                                    0: whoCurves["Median"]?.[age],
-                                    "+1": whoCurves["+1"]?.[age],
-                                    "+2": whoCurves["+2"]?.[age],
-                                    "+3": whoCurves["+3"]?.[age],
+                                    "-3": whoCurves["-3"]?.[ageIndex],
+                                    "-2": whoCurves["-2"]?.[ageIndex],
+                                    "-1": whoCurves["-1"]?.[ageIndex],
+                                    0: whoCurves["Median"]?.[ageIndex],
+                                    "+1": whoCurves["+1"]?.[ageIndex],
+                                    "+2": whoCurves["+2"]?.[ageIndex],
+                                    "+3": whoCurves["+3"]?.[ageIndex],
                                 };
 
                                 if (
@@ -178,16 +233,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     return "Data tidak tersedia";
                                 }
 
-                                // Tentukan kategori
-                                if (weight < zScores["-3"]) return "Gizi Buruk";
-                                if (weight < zScores["-2"])
-                                    return "Gizi Kurang";
-                                if (weight < zScores["-1"])
-                                    return "Normal (bawah)";
-                                if (weight < zScores["+1"]) return "Normal";
-                                if (weight < zScores["+2"])
+                                if (y < zScores["-3"]) return "Gizi Buruk";
+                                if (y < zScores["-2"]) return "Gizi Kurang";
+                                if (y < zScores["-1"]) return "Normal (bawah)";
+                                if (y < zScores["+1"]) return "Normal";
+                                if (y < zScores["+2"])
                                     return "Berisiko Gizi Lebih";
-                                if (weight < zScores["+3"]) return "Gizi Lebih";
+                                if (y < zScores["+3"]) return "Gizi Lebih";
                                 return "Obesitas";
                             }
 
@@ -198,11 +250,18 @@ document.addEventListener("DOMContentLoaded", function () {
                             const x = context.parsed.x;
                             const y = context.parsed.y;
 
-                            if (label === "Berat Anak (Kg)") {
-                                return `Usia: ${x} bulan, Berat: ${y} Kg`;
-                            } else {
-                                return null;
+                            if (label === "IMT Anak (kg/m²)") {
+                                const tahun = Math.floor(x);
+                                const bulan = Math.round((x - tahun) * 12);
+                                const usia =
+                                    bulan === 0
+                                        ? `${tahun} th`
+                                        : `${tahun} th ${bulan} bln`;
+                                return `Usia: ${usia}, IMT: ${y.toFixed(
+                                    1
+                                )} kg/m²`;
                             }
+                            return null;
                         },
                     },
                 },

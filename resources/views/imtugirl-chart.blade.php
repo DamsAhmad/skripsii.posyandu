@@ -27,8 +27,8 @@
     <a href="{{ url('/admin/DataPeserta/' . $member->id) }}" class="btn-back">
         ← Kembali ke Profil
     </a>
-    <canvas id="bbuChart" width="600" height="400" style="max-width: 100%; height: auto;"
-        data-member-name="{{ $member->member_name }}" data-weights='@json($dataPoints)'></canvas>
+    <canvas id="imtuGirlChart" data-member-name="{{ $member->member_name }}" data-points='@json($dataPoints)'>
+    </canvas>
 </body>
 
 </html>
