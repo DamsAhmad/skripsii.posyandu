@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <title>Grafik IMT Dewasa - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ asset('js/filament/imt-adult-chart.js') }}"></script>
     <style>
@@ -27,8 +28,12 @@
     <a href="{{ url('/admin/DataPeserta/' . $member->id) }}" class="btn-back">
         ← Kembali ke Profil
     </a>
-    <canvas id="bbuChart" width="600" height="400" style="max-width: 100%; height: auto;"
-        data-member-name="{{ $member->member_name }}" data-weights='@json($dataPoints)'></canvas>
+    <canvas id="imtAdultChart" data-member-name="{{ $member->member_name }}" data-category="{{ $category }}"
+        data-points='@json($dataPoints)'>
+    </canvas>
+    <script>
+        console.log("IMT Data JSON:", @json($dataPoints));
+    </script>
 </body>
 
 </html>
