@@ -1,29 +1,32 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <title>Selamat Datang di Sistem Posyandu</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Monitoring Posyandu Karangasem</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Font: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
 </head>
 
-<body>
-    <div class="container py-5 text-center">
-        <h1 class="display-4 fw-bold">Sistem Monitoring Gizi Posyandu</h1>
-        <p class="lead">Pantau perkembangan peserta posyandu Karangasem secara real-time dan terstruktur.</p>
+<body class="bg-light d-flex align-items-center" style="min-height: 100vh;">
 
-        <img src="https://via.placeholder.com/600x300?text=Ilustrasi+Posyandu" class="img-fluid my-4"
-            alt="Gambar Posyandu">
-
-        <a href="{{ route('filament.admin.pages.dashboard') }}" class="btn btn-primary btn-lg">Mulai</a>
+    <div class="container text-center">
+        <h1 class="mb-4">Selamat Datang di Sistem Monitoring Gizi Posyandu</h1>
+        <p class="mb-5">Silakan klik tombol di bawah ini untuk masuk ke sistem.</p>
+        <a href="{{ route('filament.admin.auth.login') }}" class="btn btn-primary btn-lg">Masuk ke Sistem</a>
     </div>
 
-    <footer class="text-center text-muted py-3">
-        &copy; {{ date('Y') }} Posyandu Karangasem - Teratai Putih
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

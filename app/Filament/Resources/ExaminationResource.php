@@ -107,53 +107,67 @@ class ExaminationResource extends Resource
                     })
                     ->createOptionForm([
                         Fieldset::make('Data Peserta Baru')->schema([
+                            TextInput::make('nik')
+                                ->label('NIK')
+                                ->placeholder('Masukan NIK')
+                                ->required()
+                                ->placeholder('Masukan 16 digit NIK')
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
+                            TextInput::make('no_kk')
+                                ->label('No. KK')
+                                ->placeholder('Masukan Nomor KK')
+                                ->placeholder('Masukan 16 digit No. KK')
+                                ->required()
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                             TextInput::make('member_name')
                                 ->label('Nama Peserta')
                                 ->required(),
-
                             Select::make('gender')
                                 ->label('Jenis Kelamin')
                                 ->options([
                                     'Laki-laki' => 'Laki-laki',
                                     'Perempuan' => 'Perempuan',
                                 ])
-                                ->required()
-                                ->reactive(),
+                                ->required(),
 
                             TextInput::make('birthdate')
                                 ->label('Tanggal Lahir')
                                 ->type('date')
-                                ->required()
-                                ->reactive(),
+                                ->required(),
 
                             TextInput::make('birthplace')
                                 ->label('Tempat Lahir')
                                 ->required(),
-
-                            Select::make('is_pregnant')
-                                ->label('Sedang hamil?')
-                                ->options([
-                                    false => 'Tidak',
-                                    true => 'Ya',
-                                ])
-                                ->native(false)
-                                ->default(false)
-                                ->reactive()
-                                ->hidden(function ($get) {
-                                    $gender = $get('gender');
-                                    $birthdate = $get('birthdate');
-
-                                    if (!$gender || !$birthdate) return true;
-
-                                    try {
-                                        $months = \Carbon\Carbon::parse($birthdate)->diffInMonths(now());
-                                    } catch (\Exception $e) {
-                                        return true;
-                                    }
-
-                                    return $gender !== 'Perempuan' || $months < 180 || $months > 600;
-                                })
-
+                            TextInput::make('father')
+                                ->label('Nama Ayah')
+                                ->placeholder('Masukan Nama Ayah')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('mother')
+                                ->label('Nama Ibu')
+                                ->placeholder('Masukan Nama Ibu')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('parent_phone')
+                                ->label('No. Telepon Orang Tua')
+                                ->placeholder('Contoh: 081234567890')
+                                ->numeric()
+                                ->maxLength(13)
+                                ->rule('regex:/^[0-9]{11,13}$/')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('nik_parent')
+                                ->label('NIK Ortu')
+                                ->placeholder('Utamakan NIK Ayah/Bapak/Wali laki-laki')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                         ])
                     ])
 
