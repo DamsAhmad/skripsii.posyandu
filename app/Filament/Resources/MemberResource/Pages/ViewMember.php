@@ -38,7 +38,6 @@ class ViewMember extends ViewRecord
                         $category === 'anak-remaja' && $gender === 'Laki-laki' => route('imtuboy-chart.show', ['id' => $this->record->id]),
                         $category === 'anak-remaja' && $gender === 'Perempuan' => route('imtugirl-chart.show', ['id' => $this->record->id]),
                         in_array($category, ['dewasa', 'lansia', 'ibu hamil'])             => route('imtadult-chart.show', ['id' => $this->record->id]),
-                        $category === 'ibu hamil' && $gender === 'Perempuan'  => route('pregnant-chart.show', ['id' => $this->record->id]),
                         default => null,
                     };
                 })

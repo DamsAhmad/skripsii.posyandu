@@ -13,12 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("JSON parse error:", e.message);
     }
 
-    console.log("IMT RAW:", points);
     const imtData = points.map((dp) => ({
         x: parseFloat(dp.x),
         y: parseFloat(dp.y),
     }));
-    console.log("IMT MAPPED:", imtData);
 
     function formatUsia(val) {
         const tahun = Math.floor(val);
@@ -36,31 +34,36 @@ document.addEventListener("DOMContentLoaded", function () {
         return result;
     }
 
-    const usiaList =
-        category === "dewasa"
-            ? generateUsiaDesimal(19, 44)
-            : generateUsiaDesimal(45, 80);
+    // Tentukan rentang usia berdasarkan kategori
+    let usiaRange;
+    switch (category) {
+        case "lansia":
+            usiaRange = [45, 80];
+            break;
+        case "ibu-hamil":
+            usiaRange = [15, 55];
+            break;
+        case "dewasa":
+        default:
+            usiaRange = [19, 44];
+    }
 
+    const usiaList = generateUsiaDesimal(usiaRange[0], usiaRange[1]);
     const jumlahTitik = usiaList.length;
 
-    const whoCurves =
-        category === "dewasa"
-            ? {
-                  Kurus: Array(jumlahTitik).fill(18.5),
-                  Normal: Array(jumlahTitik).fill(25.0),
-                  Gemuk: Array(jumlahTitik).fill(30.0),
-                  Obesitas_Kelas_I: Array(jumlahTitik).fill(35.0),
-                  Obesitas_Kelas_II: Array(jumlahTitik).fill(40.0),
-              }
-            : {
-                  Kurus: Array(jumlahTitik).fill(22.0),
-                  Normal: Array(jumlahTitik).fill(27.0),
-              };
+    // Standar IMT yang sama untuk semua kategori
+    const whoCurves = {
+        Kurus: Array(jumlahTitik).fill(18.5),
+        Normal: Array(jumlahTitik).fill(25.0),
+        Gemuk: Array(jumlahTitik).fill(30.0),
+        Obesitas_Kelas_I: Array(jumlahTitik).fill(35.0),
+        Obesitas_Kelas_II: Array(jumlahTitik).fill(40.0),
+    };
 
     const labelMap = {
         Kurus: "Kurus",
         Normal: "Normal",
-        Gemuk: category === "dewasa" ? "Gemuk (Pra-Obesitas)" : "Gemuk",
+        Gemuk: "Gemuk (Pra-Obesitas)",
         Obesitas_Kelas_I: "Obesitas Kelas I",
         Obesitas_Kelas_II: "Obesitas Kelas II",
     };
@@ -125,17 +128,31 @@ document.addEventListener("DOMContentLoaded", function () {
                     },
                 },
                 y: {
-                    title: { display: true, text: "IMT (kg/m²)" },
+                    title: {
+                        display: true,
+                        text: "IMT (kg/m²)",
+                    },
                     min: 10,
                     max: 50,
-                    ticks: { stepSize: 2 },
+                    ticks: {
+                        stepSize: 2,
+                    },
                 },
             },
             plugins: {
                 title: {
                     display: true,
-                    text: `Grafik IMT - ${memberName}`,
-                    font: { size: 20, weight: "bold" },
+                    text: `Grafik IMT ${
+                        category === "dewasa"
+                            ? "Dewasa"
+                            : category === "lansia"
+                            ? "Lansia"
+                            : "Ibu Hamil"
+                    } - ${memberName}`,
+                    font: {
+                        size: 20,
+                        weight: "bold",
+                    },
                 },
                 legend: {
                     display: true,
@@ -143,11 +160,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 tooltip: {
                     callbacks: {
-                        title: (ctx) => `Usia: ${formatUsia(ctx[0].parsed.x)}`,
-                        label: (ctx) =>
-                            `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(
-                                1
-                            )} kg/m²`,
+                        title: function (context) {
+                            const imt = context[0].parsed.y;
+                            let kategori = "";
+
+                            if (imt < 18.5) kategori = "Kurus";
+                            else if (imt < 25) kategori = "Normal";
+                            else if (imt < 30)
+                                kategori = "Gemuk (Pra-Obesitas)";
+                            else if (imt < 35) kategori = "Obesitas Kelas I";
+                            else if (imt < 40) kategori = "Obesitas Kelas II";
+                            else kategori = "Obesitas Kelas III";
+
+                            return kategori;
+                        },
+                        label: function (context) {
+                            const imt = context.parsed.y;
+                            const usia = context.parsed.x;
+                            return `Usia: ${formatUsia(
+                                usia
+                            )}, IMT: ${imt.toFixed(1)} kg/m²`;
+                        },
                     },
                 },
             },

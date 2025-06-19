@@ -142,6 +142,15 @@ class ExaminationRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.1);
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
+                                    ->step(0.1);
                                 break;
 
                             case 'anak-remaja':
@@ -152,7 +161,15 @@ class ExaminationRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.1);
-
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
+                                    ->step(0.1);
                                 $fields[] = TextInput::make('tension')
                                     ->label('Tensi (mmHg)')
                                     ->prefix('💓')

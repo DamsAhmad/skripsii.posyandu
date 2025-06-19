@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <title>Grafik BB/U - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ asset('js/filament/growth-chart.js') }}"></script>
     <style>
