@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Grafik BB/U - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ asset('js/filament/growth-chart.js') }}"></script>
@@ -28,8 +29,28 @@
     <a href="{{ url('/admin/DataPeserta/' . $member->id) }}" class="btn-back">
         ← Kembali ke Profil
     </a>
+
+    <div id="rotateWarning" style="text-align:center; margin-top:1rem; display:none; font-weight:bold; color:red;">
+        Putar perangkat ke mode landscape untuk melihat grafik lebih nyaman 📱↔️
+    </div>
+
     <canvas id="bbuChart" width="600" height="400" style="max-width: 100%; height: auto;"
         data-member-name="{{ $member->member_name }}" data-weights='@json($dataPoints)'></canvas>
+
+    <script>
+        function showOrientationWarning() {
+            const warning = document.getElementById('rotateWarning');
+            if (window.innerWidth < window.innerHeight) {
+                warning.style.display = 'block'; // Portrait
+            } else {
+                warning.style.display = 'none'; // Landscape
+            }
+        }
+
+        window.addEventListener('load', showOrientationWarning);
+        window.addEventListener('resize', showOrientationWarning);
+        window.addEventListener('orientationchange', showOrientationWarning);
+    </script>
 </body>
 
 </html>

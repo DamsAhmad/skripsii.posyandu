@@ -23,15 +23,20 @@ class UserResource extends Resource
     protected static ?string $navigationGroup = 'Data Kader';
     protected static ?string $navigationLabel = 'Data Kader';
     protected static ?int $navigationSort = 1;
+    // protected static ?string $slug = 'DataKader';
+    protected static ?string $modelLabel = 'Data Kader';
+    protected static ?string $pluralModelLabel = 'Data Kader';
 
     public static function form(Form $form): Form
     {
         return $form->schema([
             TextInput::make('name')
+                ->label('Nama')
                 ->required()
                 ->maxLength(255),
 
             TextInput::make('email')
+                ->label('E-mail')
                 ->required()
                 ->email()
                 ->maxLength(255)
@@ -58,8 +63,12 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('email')->searchable(),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nama')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->label('E-mail')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('jenis_kelamin')
                     ->label('Jenis Kelamin')
                     ->badge()
@@ -68,16 +77,18 @@ class UserResource extends Resource
                         'Laki-laki' => 'info',
                         'Perempuan' => 'success',
                     }),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime('d M Y - H:i'),
+                // Tables\Columns\TextColumn::make('created_at')
+                //     ->dateTime('d M Y - H:i'),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->button(),
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
+                    ->button()
                     ->modalHeading('Hapus Kader')
                     ->modalDescription('Anda yakin ingin menghapus data kader ini? Tindakan ini tidak dapat dibatalkan.')
                     ->action(function (User $record) {

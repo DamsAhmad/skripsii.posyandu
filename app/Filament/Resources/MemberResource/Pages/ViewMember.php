@@ -27,6 +27,11 @@ class ViewMember extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('Kembali Ke List Member')
+                ->label('Kembali ke List Peserta')
+                ->icon('heroicon-o-arrow-left')
+                ->color('success')
+                ->url(fn() => url('/admin/DataPeserta')),
             Action::make('Lihat Grafik')
                 ->url(function () {
                     $category = $this->record->category;
