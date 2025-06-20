@@ -14,7 +14,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Enums\IconPosition;
+use Filament\Support\Enums\ActionSize;
 use ExaminationRelationManager;
+use Illuminate\Validation\Rule;
+use Filament\Forms\Get;
+
 
 class CheckupResource extends Resource
 {
@@ -36,12 +40,23 @@ class CheckupResource extends Resource
                 Forms\Components\DatePicker::make('checkup_date')
                     ->label('Tanggal Pemeriksaan')
                     ->required()
-                    ->default(now()),
+                    ->default(now())
+                    ->rules([
+                        fn(Get $get) => Rule::unique('checkups', 'checkup_date')->ignore($get('id')),
+
+                    ])
+                    ->validationMessages([
+                        'unique' => 'Tanggal pemeriksaan ini sudah ada. Silakan pilih tanggal lain.',
+                        'required' => 'Tanggal pemeriksaan wajib diisi.',
+                    ]),
 
                 Forms\Components\TextInput::make('location')
                     ->label('Lokasi')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->validationMessages([
+                        'required' => 'Lokasi pemeriksaan wajib diisi',
+                    ]),
 
                 Forms\Components\Textarea::make('annot')
                     ->label('Catatan')
@@ -89,33 +104,43 @@ class CheckupResource extends Resource
                     ])
             ])
             ->actions([
-                Tables\Actions\Action::make('view_participants')
-                    ->label('Lihat Sesi')
-                    ->url(fn(Checkup $record) => CheckupResource::getUrl(
-                        'edit',
-                        ['record' => $record->id]
-                    ) . '#relationship-examinations'),
-                Tables\Actions\Action::make('complete')
-                    ->label('Selesaikan Sesi')
-                    ->icon('heroicon-o-check')
-                    ->color('danger')
-                    ->action(function (Checkup $record) {
-                        $record->update(['status' => 'completed']);
-                    })
-                    ->visible(fn(Checkup $record) => $record->status === 'active'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('view_participants')
+                        ->label('Lihat Sesi')
+                        ->icon('heroicon-o-eye')
+                        ->color('info')
+                        ->url(fn(Checkup $record) => CheckupResource::getUrl(
+                            'edit',
+                            ['record' => $record->id]
+                        ) . '#relationship-examinations'),
+                    Tables\Actions\Action::make('complete')
+                        ->label('Selesaikan Sesi')
+                        ->icon('heroicon-o-no-symbol')
+                        ->color('danger')
+                        ->action(function (Checkup $record) {
+                            $record->update(['status' => 'completed']);
+                        })
+                        ->visible(fn(Checkup $record) => $record->status === 'active')
+                        ->iconPosition(IconPosition::After),
 
-                Tables\Actions\EditAction::make()
+                    Tables\Actions\EditAction::make()
+                        ->iconPosition(IconPosition::After),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->modalHeading('Hapus Sesi Pemeriksaan')
+                        ->modalDescription('Anda yakin ingin menghapus sesi Pemeriksaan ini? Tindakan ini tidak dapat dibatalkan.')
+                        ->action(function (Checkup $record) {
+                            $record->delete();
+                        })
+                        ->iconPosition(IconPosition::After)
+                ])
+                    ->label('Aksi')
+                    ->icon('heroicon-s-chevron-down')
+                    ->size(ActionSize::Small)
+                    ->color('primary')
                     ->iconPosition(IconPosition::After)
                     ->button(),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->modalHeading('Hapus Sesi Pemeriksaan')
-                    ->modalDescription('Anda yakin ingin menghapus sesi Pemeriksaan ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->action(function (Checkup $record) {
-                        $record->delete();
-                    })
-                    ->iconPosition(IconPosition::After)
-                    ->button()
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
