@@ -188,6 +188,9 @@ class MemberResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 Tables\Columns\TextColumn::make('member_name')
                     ->label('Nama')
                     ->searchable(),
@@ -304,7 +307,6 @@ class MemberResource extends Resource
     {
         return [
             \App\Filament\Resources\MemberResource\Widgets\MemberCharts::class,
-            \App\Filament\Resources\MemberResource\Widgets\ExaminationHistory::class,
         ];
     }
 

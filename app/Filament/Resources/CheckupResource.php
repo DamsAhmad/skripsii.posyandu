@@ -23,12 +23,12 @@ use Filament\Forms\Get;
 class CheckupResource extends Resource
 {
     protected static ?string $model = Checkup::class;
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationIcon = 'heroicon-o-heart';
     protected static ?string $navigationGroup = 'Pemeriksaan';
     protected static ?string $navigationLabel = 'Sesi Pemeriksaan';
     protected static ?string $modelLabel = 'Sesi Pemeriksaan';
     protected static ?string $pluralModelLabel = 'Sesi Pemeriksaan';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 0;
     protected $attributes = [
         'status' => 'active'
     ];
@@ -72,6 +72,9 @@ class CheckupResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 Tables\Columns\TextColumn::make('checkup_date')
                     ->label('Tanggal')
                     ->date()
@@ -106,8 +109,8 @@ class CheckupResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('view_participants')
-                        ->label('Lihat Sesi')
-                        ->icon('heroicon-o-eye')
+                        ->label('Masuk Sesi')
+                        ->icon('heroicon-o-arrow-right')
                         ->color('info')
                         ->url(fn(Checkup $record) => CheckupResource::getUrl(
                             'edit',
@@ -141,12 +144,12 @@ class CheckupResource extends Resource
                     ->iconPosition(IconPosition::After)
                     ->button(),
 
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
+        // ->bulkActions([
+        //     Tables\Actions\BulkActionGroup::make([
+        //         Tables\Actions\DeleteBulkAction::make(),
+        //     ]),
+        // ]);
     }
 
     public static function getRelations(): array

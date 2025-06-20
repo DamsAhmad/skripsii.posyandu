@@ -208,6 +208,9 @@ class ExaminationRelationManager extends RelationManager
 
             ->heading('Data Pemeriksaan')
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 TextColumn::make('member.member_name')
                     ->label('Nama')
                     ->searchable(),
@@ -228,9 +231,6 @@ class ExaminationRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('member.birthdate')
                     ->label('Usia Saat Pemeriksaan')
                     ->state(function ($record) {
-                        // $birthdate = Carbon::parse($record->member->birthdate);
-                        // $birthcheck = Carbon::parse($record->checkup->checkup_date);
-
                         $birthdate = Carbon::parse($record->member->birthdate);
                         $birthcheck = Carbon::parse($record->checkup_date);
 
@@ -255,15 +255,6 @@ class ExaminationRelationManager extends RelationManager
 
                 TextColumn::make('height')
                     ->label('TB (cm)'),
-
-                // TextColumn::make('head_circumference')
-                //     ->label('LK'),
-
-                // TextColumn::make('abdominal_circumference')
-                //     ->label('LP'),
-
-                // TextColumn::make('arm_circumference')
-                //     ->label('Lila'),
 
                 TextColumn::make('weight_status')
                     ->label('Status Gizi')
