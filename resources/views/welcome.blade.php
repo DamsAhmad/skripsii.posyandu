@@ -105,7 +105,7 @@
                     <div class="col-lg-6 col-xxl-7">
                         <div class="profile-container">
                             <div class="profile">
-                                <img class="profile-img" src="{{ asset('img/ilustrasi2.png') }}"
+                                <img class="profile-img" src="{{ asset('img/ilustrasi1.png') }}"
                                     alt="Sistem Monitoring Gizi" />
                             </div>
                         </div>
