@@ -13,7 +13,10 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Support\Enums\ActionSize;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Support\Enums\IconPosition;
+
 
 class UserResource extends Resource
 {
@@ -63,6 +66,9 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
                     ->searchable(),
@@ -84,23 +90,29 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->modalHeading('Hapus Kader')
+                        ->modalDescription('Anda yakin ingin menghapus data kader ini? Tindakan ini tidak dapat dibatalkan.')
+                        ->action(function (User $record) {
+                            $record->delete();
+                        })
+                ])
+                    ->label('Aksi')
+                    ->icon('heroicon-s-chevron-down')
+                    ->size(ActionSize::Small)
+                    ->color('primary')
+                    ->iconPosition(IconPosition::After)
                     ->button(),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->button()
-                    ->modalHeading('Hapus Kader')
-                    ->modalDescription('Anda yakin ingin menghapus data kader ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->action(function (User $record) {
 
-                        $record->delete();
-                    })
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
+        // ->bulkActions([
+        //     Tables\Actions\BulkActionGroup::make([
+        //         Tables\Actions\DeleteBulkAction::make(),
+        //     ]),
+        // ]);
     }
 
     public static function getRelations(): array

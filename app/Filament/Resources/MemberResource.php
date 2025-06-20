@@ -18,8 +18,10 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-// use App\Filament\Resources\Pages\MemberResource\Pages\MemberProfile;
+use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\IconPosition;
+use Filament\Forms\Get;
+use Illuminate\Validation\Rule;
 
 class MemberResource extends Resource
 {
@@ -35,95 +37,160 @@ class MemberResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema([
-                Section::make('Data Peserta')->schema([
-                    Forms\Components\TextInput::make('nik')
-                        ->label('NIK')
-                        ->placeholder('Masukan NIK')
-                        ->required()
-                        ->placeholder('Masukan 16 digit NIK')
-                        ->maxLength(16)
-                        ->rule('digits:16')
-                        ->numeric(),
-                    Forms\Components\TextInput::make('no_kk')
-                        ->label('No. KK')
-                        ->placeholder('Masukan Nomor KK')
-                        ->placeholder('Masukan 16 digit No. KK')
-                        ->required()
-                        ->maxLength(16)
-                        ->rule('digits:16')
-                        ->numeric(),
-                    Forms\Components\TextInput::make('member_name')
-                        ->label('Nama Peserta')
-                        ->placeholder('Masukan nama lengkap peserta')
-                        ->required(),
-                    Forms\Components\Select::make('gender')
-                        ->label('Jenis Kelamin')
-                        ->placeholder('Pilih jenis kelamin')
-                        ->options([
-                            'Laki-laki' => 'Laki-laki',
-                            'Perempuan' => 'Perempuan',
-                        ])
-                        ->required()
-                        ->reactive(),
-                    Forms\Components\DatePicker::make('birthdate')
-                        ->label('Tanggal Lahir')
-                        ->required()
-                        ->reactive(),
-                    Forms\Components\TextInput::make('birthplace')
-                        ->label('Tempat Lahir')
-                        ->placeholder('Contoh: Jakarta atau Sleman')
-                        ->required(),
-                    Forms\Components\TextInput::make('father')
-                        ->label('Nama Ayah')
-                        ->placeholder('Masukan Nama Ayah')
-                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                    Forms\Components\TextInput::make('mother')
-                        ->label('Nama Ibu')
-                        ->placeholder('Masukan Nama Ibu')
-                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                    Forms\Components\TextInput::make('parent_phone')
-                        ->label('No. Telepon Orang Tua')
-                        ->placeholder('Contoh: 081234567890')
-                        ->numeric()
-                        ->maxLength(13)
-                        ->rule('regex:/^[0-9]{11,13}$/')
-                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                    Forms\Components\TextInput::make('nik_parent')
-                        ->label('NIK')
-                        ->placeholder('Masukan NIK Orang Tua')
-                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                        ->maxLength(16)
-                        ->rule('digits:16')
-                        ->numeric(),
-                    Forms\Components\Select::make('is_pregnant')
-                        ->label('Sedang hamil?')
-                        ->options([
-                            false => 'Tidak',
-                            true => 'Ya',
-                        ])
-                        ->native(false)
-                        ->required()
-                        ->default(false)
-                        ->hidden(
-                            fn($get) =>
-                            $get('gender') !== 'Perempuan' ||
-                                Carbon::parse($get('birthdate'))->diffInMonths(Carbon::now()) < 180 ||
-                                Carbon::parse($get('birthdate'))->diffInMonths(Carbon::now()) > 600
-                        ),
-
-                ])
-            ]);
+            ->schema(static::getFormSchema());
     }
+
+    public static function getFormSchema(): array
+    {
+        return [
+            Section::make('Data Peserta')->schema([
+                Forms\Components\TextInput::make('member_name')
+                    ->label('Nama Peserta')
+                    ->placeholder('Masukan nama lengkap peserta')
+                    ->required(),
+                Forms\Components\TextInput::make('nik')
+                    ->label('NIK')
+                    ->placeholder('Masukan 16 digit NIK')
+                    ->required()
+                    ->numeric()
+                    ->rules([
+                        fn(Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            if (is_null($value) || $value === '') {
+                                $fail('NIK wajib diisi.');
+                                return;
+                            }
+
+                            if (!is_numeric($value)) {
+                                $fail('NIK harus berupa angka.');
+                                return;
+                            }
+
+                            $length = strlen($value);
+                            if ($length < 16) {
+                                $fail('Angka yang Anda masukkan kurang dari 16 digit.');
+                            } elseif ($length > 16) {
+                                $fail('Angka yang Anda masukkan lebih dari 16 digit.');
+                            }
+
+                            $memberId = $get('id');
+                            $exists = \App\Models\Member::where('nik', $value)
+                                ->when($memberId, fn($q) => $q->where('id', '!=', $memberId))
+                                ->exists();
+
+                            if ($exists) {
+                                $fail('NIK sudah terdaftar.');
+                            }
+                        }
+                    ]),
+                Forms\Components\TextInput::make('no_kk')
+                    ->label('No. KK')
+                    ->placeholder('Masukan 16 digit No. KK')
+                    ->required()
+                    ->numeric()
+                    ->rules([
+                        fn(Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            if (is_null($value) || $value === '') {
+                                $fail('No. KK wajib diisi.');
+                                return;
+                            }
+
+                            if (!is_numeric($value)) {
+                                $fail('No. KK harus berupa angka.');
+                                return;
+                            }
+
+                            $length = strlen($value);
+                            if ($length < 16) {
+                                $fail('Angka yang Anda masukkan kurang dari 16 digit.');
+                            } elseif ($length > 16) {
+                                $fail('Angka yang Anda masukkan lebih dari 16 digit.');
+                            }
+                        }
+                    ]),
+                Forms\Components\Select::make('gender')
+                    ->label('Jenis Kelamin')
+                    ->placeholder('Pilih jenis kelamin')
+                    ->options([
+                        'Laki-laki' => 'Laki-laki',
+                        'Perempuan' => 'Perempuan',
+                    ])
+                    ->required()
+                    ->reactive(),
+                Forms\Components\DatePicker::make('birthdate')
+                    ->label('Tanggal Lahir')
+                    ->required()
+                    ->reactive()
+                    ->maxDate(now())
+                    ->rules(['before_or_equal:' . now()->toDateString()])
+                    ->validationMessages([
+                        'before_or_equal' => 'Tanggal lahir tidak boleh lebih dari hari ini.',
+                    ]),
+                Forms\Components\TextInput::make('birthplace')
+                    ->label('Tempat Lahir')
+                    ->placeholder('Contoh: Jakarta atau Sleman')
+                    ->required(),
+                Forms\Components\TextInput::make('father')
+                    ->label('Nama Ayah')
+                    ->placeholder('Masukan Nama Ayah'),
+                Forms\Components\TextInput::make('mother')
+                    ->label('Nama Ibu')
+                    ->placeholder('Masukan Nama Ibu'),
+                Forms\Components\TextInput::make('parent_phone')
+                    ->label('No. Telepon Orang Tua')
+                    ->placeholder('Contoh: 081234567890')
+                    ->numeric()
+                    ->rule('regex:/^[0-9]{11,13}$/')
+                    ->validationMessages([
+                        'regex' => 'Nomor telepon harus terdiri dari 11 hingga 13 digit angka.',
+                    ]),
+                Forms\Components\TextInput::make('nik_parent')
+                    ->label('NIK')
+                    ->placeholder('Masukan NIK Orang Tua')
+                    ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                    ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                    ->numeric()
+                    ->rules([
+                        fn(Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            if (!is_numeric($value)) {
+                                $fail('NIK Ortu harus berupa angka.');
+                                return;
+                            }
+
+                            $length = strlen($value);
+                            if ($length < 16) {
+                                $fail('Angka yang Anda masukkan kurang dari 16 digit.');
+                            } elseif ($length > 16) {
+                                $fail('Angka yang Anda masukkan lebih dari 16 digit.');
+                            }
+                        }
+                    ]),
+                Forms\Components\Select::make('is_pregnant')
+                    ->label('Sedang hamil?')
+                    ->options([
+                        false => 'Tidak',
+                        true => 'Ya',
+                    ])
+                    ->native(false)
+                    ->required()
+                    ->default(false)
+                    ->hidden(
+                        fn($get) =>
+                        $get('gender') !== 'Perempuan' ||
+                            \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) < 180 ||
+                            \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) > 600
+                    ),
+            ]),
+        ];
+    }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 Tables\Columns\TextColumn::make('member_name')
                     ->label('Nama')
                     ->searchable(),
@@ -165,35 +232,41 @@ class MemberResource extends Resource
             ])
             ->defaultSort('category', 'asc')
             ->filters([
-                SelectFilter::make('category')
+                SelectFilter::make('Filter Kategori')
                     ->options([
                         'BALITA' => 'balita',
-                        'ANAK-REMAJA' => 'anak-Remaja',
+                        'ANAK-REMAJA' => 'anak-remaja',
                         'DEWASA' => 'dewasa',
                         'LANSIA' => 'lansia',
                         'IBU HAMIL' => 'ibu hamil'
                     ]),
             ])
             ->actions([
-                Tables\Actions\Action::make('lihat_profil')
-                    ->label('Profil')
-                    ->url(fn($record) => MemberResource::getUrl('view', ['record' => $record]))
-                    ->color('info')
-                    ->icon('heroicon-o-user')
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('lihat_profil')
+                        ->label('Profil')
+                        ->url(fn($record) => MemberResource::getUrl('view', ['record' => $record]))
+                        ->color('info')
+                        ->icon('heroicon-o-user')
+                        ->iconPosition(IconPosition::After),
+                    Tables\Actions\EditAction::make()
+                        ->iconPosition(IconPosition::After),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->modalHeading('Hapus Anggota')
+                        ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
+                        ->action(function (Member $record) {
+                            $record->delete();
+                        })
+                        ->iconPosition(IconPosition::After)
+                ])
+                    ->label('Aksi')
+                    ->icon('heroicon-s-chevron-down')
+                    ->size(ActionSize::Small)
+                    ->color('primary')
                     ->iconPosition(IconPosition::After)
                     ->button(),
-                Tables\Actions\EditAction::make()
-                    ->iconPosition(IconPosition::After)
-                    ->button(),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->modalHeading('Hapus Anggota')
-                    ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->action(function (Member $record) {
-                        $record->delete();
-                    })
-                    ->iconPosition(IconPosition::After)
-                    ->button()
+
             ]);
     }
 

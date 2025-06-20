@@ -5,28 +5,23 @@ use Filament\Tables;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
-
 use App\Services\NutritionalStatusCalculator;
 use App\Filament\Resources\ExaminationResource;
 use App\Filament\Resources\CheckupResource;
-
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Hidden;
-
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Illuminate\Support\Facades\Log;
-
-
 use App\Models\Examination;
 use App\Models\Member;
 use App\Models\Checkup;
-
 use Carbon\Carbon;
+use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\IconPosition;
 
 class ExaminationRelationManager extends RelationManager
@@ -63,69 +58,7 @@ class ExaminationRelationManager extends RelationManager
                     })
                     ->required()
                     ->createOptionForm([
-                        Fieldset::make('Data Peserta Baru')->schema([
-                            TextInput::make('nik')
-                                ->label('NIK')
-                                ->placeholder('Masukan NIK')
-                                ->required()
-                                ->placeholder('Masukan 16 digit NIK')
-                                ->maxLength(16)
-                                ->rule('digits:16')
-                                ->numeric(),
-                            TextInput::make('no_kk')
-                                ->label('No. KK')
-                                ->placeholder('Masukan Nomor KK')
-                                ->placeholder('Masukan 16 digit No. KK')
-                                ->required()
-                                ->maxLength(16)
-                                ->rule('digits:16')
-                                ->numeric(),
-                            TextInput::make('member_name')
-                                ->label('Nama Peserta')
-                                ->required(),
-                            Select::make('gender')
-                                ->label('Jenis Kelamin')
-                                ->options([
-                                    'Laki-laki' => 'Laki-laki',
-                                    'Perempuan' => 'Perempuan',
-                                ])
-                                ->required(),
-
-                            TextInput::make('birthdate')
-                                ->label('Tanggal Lahir')
-                                ->type('date')
-                                ->required(),
-
-                            TextInput::make('birthplace')
-                                ->label('Tempat Lahir')
-                                ->required(),
-                            TextInput::make('father')
-                                ->label('Nama Ayah')
-                                ->placeholder('Masukan Nama Ayah')
-                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                            TextInput::make('mother')
-                                ->label('Nama Ibu')
-                                ->placeholder('Masukan Nama Ibu')
-                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                            TextInput::make('parent_phone')
-                                ->label('No. Telepon Orang Tua')
-                                ->placeholder('Contoh: 081234567890')
-                                ->numeric()
-                                ->maxLength(13)
-                                ->rule('regex:/^[0-9]{11,13}$/')
-                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
-                            TextInput::make('nik_parent')
-                                ->label('NIK')
-                                ->placeholder('Masukan NIK Orang Tua')
-                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
-                                ->maxLength(16)
-                                ->rule('digits:16')
-                                ->numeric(),
-                        ])
+                        \app\Filament\Resources\MemberResource::getFormSchema()
                     ])
                     ->createOptionAction(
                         fn($action) => $action->label('Tambah Peserta Baru'),
@@ -275,10 +208,12 @@ class ExaminationRelationManager extends RelationManager
 
             ->heading('Data Pemeriksaan')
             ->columns([
+                Tables\Columns\TextColumn::make('no')
+                    ->label('No.')
+                    ->rowIndex(),
                 TextColumn::make('member.member_name')
                     ->label('Nama')
                     ->searchable(),
-
                 Tables\Columns\TextColumn::make('member.gender')
                     ->label('Jenis Kelamin')
                     ->searchable(),
@@ -296,9 +231,6 @@ class ExaminationRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('member.birthdate')
                     ->label('Usia Saat Pemeriksaan')
                     ->state(function ($record) {
-                        // $birthdate = Carbon::parse($record->member->birthdate);
-                        // $birthcheck = Carbon::parse($record->checkup->checkup_date);
-
                         $birthdate = Carbon::parse($record->member->birthdate);
                         $birthcheck = Carbon::parse($record->checkup_date);
 
@@ -324,15 +256,6 @@ class ExaminationRelationManager extends RelationManager
                 TextColumn::make('height')
                     ->label('TB (cm)'),
 
-                // TextColumn::make('head_circumference')
-                //     ->label('LK'),
-
-                // TextColumn::make('abdominal_circumference')
-                //     ->label('LP'),
-
-                // TextColumn::make('arm_circumference')
-                //     ->label('Lila'),
-
                 TextColumn::make('weight_status')
                     ->label('Status Gizi')
                     ->badge()
@@ -345,43 +268,50 @@ class ExaminationRelationManager extends RelationManager
             ])
 
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->modalHeading('Ubah Data Pemeriksaan')
-                    ->button()
-                    ->after(function (Examination $record, array $data) {
-                        if (!$record->relationLoaded('checkup')) {
-                            $record->load('checkup');
-                        }
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->modalHeading('Ubah Data Pemeriksaan')
+                        ->after(function (Examination $record, array $data) {
+                            if (!$record->relationLoaded('checkup')) {
+                                $record->load('checkup');
+                            }
 
-                        $status = \App\Services\NutritionalStatusCalculator::generateStatus($record->member, $record);
-                        $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($record->member, $record);
-                        $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($record->member, $record);
-                        $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
+                            $status = \App\Services\NutritionalStatusCalculator::generateStatus($record->member, $record);
+                            $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($record->member, $record);
+                            $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($record->member, $record);
+                            $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
 
-                        $record->update([
-                            'weight_status' => $status,
-                            'z_score' => $z_score,
-                            'anthropometric_value' => $anthropometric,
-                            'recommendation' => $recommendation,
-                        ]);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Status Gizi Diperbarui: ' . $status)
-                            ->body($recommendation)
-                            ->success()
-                            ->send();
-                    }),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->modalHeading('Hapus Data Pemeriksaan')
-                    ->modalDescription('Anda yakin ingin menghapus data pemeriksaan peserta ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->action(function (Examination $record) {
-                        $record->delete();
-                    })
-                    ->before(function ($record) {
-                        logger('HAPUS NIH: ' . $record->id);
-                    })
+                            $record->update([
+                                'weight_status' => $status,
+                                'z_score' => $z_score,
+                                'anthropometric_value' => $anthropometric,
+                                'recommendation' => $recommendation,
+                            ]);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Status Gizi Diperbarui: ' . $status)
+                                ->body($recommendation)
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->modalHeading('Hapus Data Pemeriksaan')
+                        ->modalDescription('Anda yakin ingin menghapus data pemeriksaan peserta ini? Tindakan ini tidak dapat dibatalkan.')
+                        ->action(function (Examination $record) {
+                            $record->delete();
+                        })
+                        ->before(function ($record) {
+                            logger('HAPUS NIH: ' . $record->id);
+                        })
+                        ->iconPosition(IconPosition::After)
+                ])
+                    ->label('Aksi')
+                    ->icon('heroicon-s-chevron-down')
+                    ->size(ActionSize::Small)
+                    ->color('primary')
                     ->iconPosition(IconPosition::After)
-                    ->button()
+                    ->button(),
+
             ])
             ->headerActions([
                 Tables\Actions\Action::make('print')
