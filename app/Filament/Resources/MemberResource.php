@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Section;
 use Carbon\Carbon;
+use Closure;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,6 +37,22 @@ class MemberResource extends Resource
         return $form
             ->schema([
                 Section::make('Data Peserta')->schema([
+                    Forms\Components\TextInput::make('nik')
+                        ->label('NIK')
+                        ->placeholder('Masukan NIK')
+                        ->required()
+                        ->placeholder('Masukan 16 digit NIK')
+                        ->maxLength(16)
+                        ->rule('digits:16')
+                        ->numeric(),
+                    Forms\Components\TextInput::make('no_kk')
+                        ->label('No. KK')
+                        ->placeholder('Masukan Nomor KK')
+                        ->placeholder('Masukan 16 digit No. KK')
+                        ->required()
+                        ->maxLength(16)
+                        ->rule('digits:16')
+                        ->numeric(),
                     Forms\Components\TextInput::make('member_name')
                         ->label('Nama Peserta')
                         ->placeholder('Masukan nama lengkap peserta')
@@ -55,15 +72,41 @@ class MemberResource extends Resource
                         ->reactive(),
                     Forms\Components\TextInput::make('birthplace')
                         ->label('Tempat Lahir')
-                        ->placeholder('Misal: Jakarta atau Sleman')
+                        ->placeholder('Contoh: Jakarta atau Sleman')
                         ->required(),
+                    Forms\Components\TextInput::make('father')
+                        ->label('Nama Ayah')
+                        ->placeholder('Masukan Nama Ayah')
+                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                    Forms\Components\TextInput::make('mother')
+                        ->label('Nama Ibu')
+                        ->placeholder('Masukan Nama Ibu')
+                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                    Forms\Components\TextInput::make('parent_phone')
+                        ->label('No. Telepon Orang Tua')
+                        ->placeholder('Contoh: 081234567890')
+                        ->numeric()
+                        ->maxLength(13)
+                        ->rule('regex:/^[0-9]{11,13}$/')
+                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                    Forms\Components\TextInput::make('nik_parent')
+                        ->label('NIK')
+                        ->placeholder('Masukan NIK Orang Tua')
+                        ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                        ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                        ->maxLength(16)
+                        ->rule('digits:16')
+                        ->numeric(),
                     Forms\Components\Select::make('is_pregnant')
                         ->label('Sedang hamil?')
                         ->options([
                             false => 'Tidak',
                             true => 'Ya',
                         ])
-                        ->native(false) // tampilkan sebagai dropdown stylish
+                        ->native(false)
                         ->required()
                         ->default(false)
                         ->hidden(
@@ -152,11 +195,6 @@ class MemberResource extends Resource
                     ->iconPosition(IconPosition::After)
                     ->button()
             ]);
-        // ->bulkActions([
-        //     Tables\Actions\BulkActionGroup::make([
-        //         Tables\Actions\DeleteBulkAction::make(),
-        //     ]),
-        // ]);
     }
 
     public static function calculateCategory($birthdate,  $gender = null, $isPregnant = false): string
@@ -171,7 +209,7 @@ class MemberResource extends Resource
             return 'balita';
         } elseif ($ageInMonths <= 228) {
             return 'anak-remaja';
-        } elseif ($ageInMonths <= 720) {
+        } elseif ($ageInMonths <= 539) {
             return 'dewasa';
         } else {
             return 'lansia';

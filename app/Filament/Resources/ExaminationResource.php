@@ -44,11 +44,33 @@ class ExaminationResource extends Resource
                 Hidden::make('checkup_id')
                     ->required()
                     ->dehydrated(true),
-
                 Select::make('member_id')
-                    ->label('Pilih Peserta')
-                    ->options(Member::all()->pluck('member_name', 'id'))
+                    ->label('Cari Peserta')
                     ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        return Member::query()
+                            ->where('member_name', 'like', "%{$search}%")
+                            ->orWhere('category', 'like', "%{$search}%")
+                            ->limit(20)
+                            ->get()
+                            ->mapWithKeys(function ($member) {
+                                $age = \Carbon\Carbon::parse($member->birthdate)->diff(now());
+                                $ageText = "{$age->y} tahun {$age->m} bulan";
+                                return [
+                                    $member->id => "{$member->member_name} - {$member->category} - {$ageText}"
+                                ];
+                            });
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $member = \App\Models\Member::find($value);
+                        if (!$member) return null;
+
+                        $age = \Carbon\Carbon::parse($member->birthdate)->diff(now());
+                        $ageText = "{$age->y} tahun {$age->m} bulan";
+
+                        return "{$member->member_name} - {$member->category} - {$ageText}";
+                    })
+
                     ->reactive()
                     ->afterStateUpdated(function ($set, $get, $state) {
                         if ($state) {
@@ -83,56 +105,69 @@ class ExaminationResource extends Resource
                             }
                         };
                     })
-
                     ->createOptionForm([
                         Fieldset::make('Data Peserta Baru')->schema([
+                            TextInput::make('nik')
+                                ->label('NIK')
+                                ->placeholder('Masukan NIK')
+                                ->required()
+                                ->placeholder('Masukan 16 digit NIK')
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
+                            TextInput::make('no_kk')
+                                ->label('No. KK')
+                                ->placeholder('Masukan Nomor KK')
+                                ->placeholder('Masukan 16 digit No. KK')
+                                ->required()
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                             TextInput::make('member_name')
                                 ->label('Nama Peserta')
                                 ->required(),
-
                             Select::make('gender')
                                 ->label('Jenis Kelamin')
                                 ->options([
                                     'Laki-laki' => 'Laki-laki',
                                     'Perempuan' => 'Perempuan',
                                 ])
-                                ->required()
-                                ->reactive(),
+                                ->required(),
 
                             TextInput::make('birthdate')
                                 ->label('Tanggal Lahir')
                                 ->type('date')
-                                ->required()
-                                ->reactive(),
+                                ->required(),
 
                             TextInput::make('birthplace')
                                 ->label('Tempat Lahir')
                                 ->required(),
-
-                            Select::make('is_pregnant')
-                                ->label('Sedang hamil?')
-                                ->options([
-                                    false => 'Tidak',
-                                    true => 'Ya',
-                                ])
-                                ->native(false)
-                                ->default(false)
-                                ->reactive()
-                                ->hidden(function ($get) {
-                                    $gender = $get('gender');
-                                    $birthdate = $get('birthdate');
-
-                                    if (!$gender || !$birthdate) return true;
-
-                                    try {
-                                        $months = \Carbon\Carbon::parse($birthdate)->diffInMonths(now());
-                                    } catch (\Exception $e) {
-                                        return true;
-                                    }
-
-                                    return $gender !== 'Perempuan' || $months < 180 || $months > 600;
-                                })
-
+                            TextInput::make('father')
+                                ->label('Nama Ayah')
+                                ->placeholder('Masukan Nama Ayah')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('mother')
+                                ->label('Nama Ibu')
+                                ->placeholder('Masukan Nama Ibu')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('parent_phone')
+                                ->label('No. Telepon Orang Tua')
+                                ->placeholder('Contoh: 081234567890')
+                                ->numeric()
+                                ->maxLength(13)
+                                ->rule('regex:/^[0-9]{11,13}$/')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('nik_parent')
+                                ->label('NIK Ortu')
+                                ->placeholder('Utamakan NIK Ayah/Bapak/Wali laki-laki')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                         ])
                     ])
 
@@ -183,6 +218,16 @@ class ExaminationResource extends Resource
                                     ->label('Lingkar Kepala (cm)')
                                     ->numeric()
                                     ->minValue(0)
+                                    ->step(0.1)
+                                    ->required();
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
                                     ->step(0.1);
                                 break;
 
@@ -195,7 +240,15 @@ class ExaminationResource extends Resource
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.1);
-
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
+                                    ->step(0.1);
                                 $fields[] = TextInput::make('tension')
                                     ->label('Tensi (mmHg)')
                                     ->prefix('💓')
@@ -228,23 +281,23 @@ class ExaminationResource extends Resource
                             $fields[] = Fieldset::make('Ibu Hamil')
                                 ->schema([
                                     TextInput::make('gestational_week')
-                                        ->label('Usia Kehamilan (minggu)')
+                                        ->label('Usia Kehamilan (dalam satuan minggu)')
                                         ->required()
                                         ->numeric()
                                         ->minValue(4)
                                         ->maxValue(42)
                                         ->integer(),
 
-                                    TextInput::make('arm_circumference')
-                                        ->label('Lingkar Lengan Atas (cm)')
-                                        ->required()
-                                        ->numeric()
-                                        ->minValue(10)
-                                        ->maxValue(50)
-                                        ->step(0.1)
-                                        ->helperText('KEK jika < 23.5 cm'),
+                                    // TextInput::make('arm_circumference')
+                                    //     ->label('Lingkar Lengan Atas (cm)')
+                                    //     ->required()
+                                    //     ->numeric()
+                                    //     ->minValue(10)
+                                    //     ->maxValue(50)
+                                    //     ->step(0.1)
+                                    //     ->helperText('KEK jika < 23.5 cm'),
                                 ])
-                                ->columns(2);
+                                ->columns(1);
                         }
 
                         return $fields;

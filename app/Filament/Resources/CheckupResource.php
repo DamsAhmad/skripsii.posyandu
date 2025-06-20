@@ -90,10 +90,7 @@ class CheckupResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('view_participants')
-                    ->label('Lihat Peserta')
-                    // ->url(fn(Checkup $record) => ExaminationResource::getUrl('index', [
-                    //     'checkup_id' => $record->id
-                    // ])),
+                    ->label('Lihat Sesi')
                     ->url(fn(Checkup $record) => CheckupResource::getUrl(
                         'edit',
                         ['record' => $record->id]

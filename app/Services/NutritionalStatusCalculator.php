@@ -18,6 +18,7 @@ class NutritionalStatusCalculator
         $checkupDate = self::getCheckupDate($exam);
         $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
 
+        Log::debug('Age in months: ' . $ageInMonths);
         if (!$exam->weight || !$exam->height) {
             return [
                 'status' => 'Data tidak lengkap',
@@ -283,21 +284,36 @@ class NutritionalStatusCalculator
     {
         if ($imt < 18.5) return 'Kurus';
         if ($imt < 25.0) return 'Normal';
-        if ($imt < 30.0) return 'Gemuk';
+        if ($imt < 30.0) return 'Gemuk (Pra-Obesitas)';
+        if ($imt < 35.0) return 'Obesitas Kelas I';
+        if ($imt < 40.0) return 'Obesitas Kelas II';
+        if ($imt >= 40.0) return 'Obesitas Kelas III';
         return 'Obesitas';
     }
 
     private static function categorizeIMT($imt, $category)
     {
-        if ($category === 'dewasa' || $category === 'lansia') {
+        if ($category === 'dewasa') {
             if ($imt < 18.5) {
                 return 'Kurus';
             } elseif ($imt < 25.0) {
                 return 'Normal';
             } elseif ($imt < 30.0) {
-                return 'Gemuk';
+                return 'Gemuk (Pra-Obesitas)';
+            } elseif ($imt < 35.0) {
+                return 'Obesitas Kelas I';
+            } elseif ($imt < 40.0) {
+                return 'Obesitas Kelas II';
             } else {
-                return 'Obesitas';
+                return 'Obesitas Kelas III';
+            }
+        } elseif ($category === 'lansia') {
+            if ($imt < 22.0) {
+                return 'Kurus (Risiko Malnutrisi) (IMT: ' . round($imt, 1) . ')';
+            } elseif ($imt < 27.0) {
+                return 'Normal (IMT: ' . round($imt, 1) . ')';
+            } else {
+                return 'Gemuk/Obesitas (IMT: ' . round($imt, 1) . ')';
             }
         }
 

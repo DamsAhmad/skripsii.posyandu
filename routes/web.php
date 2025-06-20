@@ -21,4 +21,3 @@ Route::get('/members/{id}/bbugirl-chart', [BbuGirlsChartController::class, 'show
 Route::get('/members/{id}/imtuboy-chart', [ImtuBoyChartController::class, 'show'])->name('imtuboy-chart.show');
 Route::get('/members/{id}/imtugirl-chart', [ImtuGirlChartController::class, 'show'])->name('imtugirl-chart.show');
 Route::get('/members/{id}/imtadult-chart', [ImtAdultChartController::class, 'show'])->name('imtadult-chart.show');
-Route::get('/members/{id}/pregnant-chart', [PregnantChartController::class, 'show'])->name('pregnant-chart.show');

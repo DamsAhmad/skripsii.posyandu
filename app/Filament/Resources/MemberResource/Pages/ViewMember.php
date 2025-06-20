@@ -27,6 +27,11 @@ class ViewMember extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('Kembali Ke List Member')
+                ->label('Kembali ke List Peserta')
+                ->icon('heroicon-o-arrow-left')
+                ->color('success')
+                ->url(fn() => url('/admin/DataPeserta')),
             Action::make('Lihat Grafik')
                 ->url(function () {
                     $category = $this->record->category;
@@ -38,7 +43,6 @@ class ViewMember extends ViewRecord
                         $category === 'anak-remaja' && $gender === 'Laki-laki' => route('imtuboy-chart.show', ['id' => $this->record->id]),
                         $category === 'anak-remaja' && $gender === 'Perempuan' => route('imtugirl-chart.show', ['id' => $this->record->id]),
                         in_array($category, ['dewasa', 'lansia', 'ibu hamil'])             => route('imtadult-chart.show', ['id' => $this->record->id]),
-                        $category === 'ibu hamil' && $gender === 'Perempuan'  => route('pregnant-chart.show', ['id' => $this->record->id]),
                         default => null,
                     };
                 })

@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('members', function (Blueprint $table) {
             $table->id();
+            $table->string('nik');
+            $table->string('no_kk');
             $table->string('member_name');
             $table->enum('gender', ['Laki-laki', 'Perempuan']);
             $table->date('birthdate');
@@ -24,6 +26,10 @@ return new class extends Migration
                 'lansia',
                 'ibu hamil'
             ])->nullable();
+            $table->string('father')->nullable();
+            $table->string('mother')->nullable();
+            $table->string('nik_parent')->nullable();
+            $table->string('parent_phone')->nullable();
             $table->boolean('is_pregnant')->default(false);
             $table->timestamps();
         });

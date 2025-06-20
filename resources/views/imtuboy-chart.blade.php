@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <title>Grafik IMT/U - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ asset('js/filament/imtu-growth_boy-chart.js') }}"></script>
     <style>

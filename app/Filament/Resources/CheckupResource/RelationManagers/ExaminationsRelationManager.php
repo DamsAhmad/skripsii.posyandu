@@ -64,10 +64,25 @@ class ExaminationRelationManager extends RelationManager
                     ->required()
                     ->createOptionForm([
                         Fieldset::make('Data Peserta Baru')->schema([
+                            TextInput::make('nik')
+                                ->label('NIK')
+                                ->placeholder('Masukan NIK')
+                                ->required()
+                                ->placeholder('Masukan 16 digit NIK')
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
+                            TextInput::make('no_kk')
+                                ->label('No. KK')
+                                ->placeholder('Masukan Nomor KK')
+                                ->placeholder('Masukan 16 digit No. KK')
+                                ->required()
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                             TextInput::make('member_name')
                                 ->label('Nama Peserta')
                                 ->required(),
-
                             Select::make('gender')
                                 ->label('Jenis Kelamin')
                                 ->options([
@@ -84,6 +99,32 @@ class ExaminationRelationManager extends RelationManager
                             TextInput::make('birthplace')
                                 ->label('Tempat Lahir')
                                 ->required(),
+                            TextInput::make('father')
+                                ->label('Nama Ayah')
+                                ->placeholder('Masukan Nama Ayah')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('mother')
+                                ->label('Nama Ibu')
+                                ->placeholder('Masukan Nama Ibu')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('parent_phone')
+                                ->label('No. Telepon Orang Tua')
+                                ->placeholder('Contoh: 081234567890')
+                                ->numeric()
+                                ->maxLength(13)
+                                ->rule('regex:/^[0-9]{11,13}$/')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja'])),
+                            TextInput::make('nik_parent')
+                                ->label('NIK')
+                                ->placeholder('Masukan NIK Orang Tua')
+                                ->required(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->dehydrated(fn($get) => in_array($get('category'), ['balita', 'anak-remaja']))
+                                ->maxLength(16)
+                                ->rule('digits:16')
+                                ->numeric(),
                         ])
                     ])
                     ->createOptionAction(
@@ -142,6 +183,15 @@ class ExaminationRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.1);
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
+                                    ->step(0.1);
                                 break;
 
                             case 'anak-remaja':
@@ -152,7 +202,15 @@ class ExaminationRelationManager extends RelationManager
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.1);
-
+                                $fields[] = TextInput::make('arm_circumference')
+                                    ->label('Lingkar Lengan Atas (cm)')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(10)
+                                    ->maxValue(50)
+                                    ->step(0.1);
                                 $fields[] = TextInput::make('tension')
                                     ->label('Tensi (mmHg)')
                                     ->prefix('💓')
