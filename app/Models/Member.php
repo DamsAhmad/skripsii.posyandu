@@ -18,7 +18,6 @@ class Member extends Model
         'mother',
         'parent_phone',
         'is_pregnant',
-        'category_id'
     ];
 
     protected $casts = [
@@ -35,8 +34,8 @@ class Member extends Model
         return $this->hasMany(Examination::class);
     }
 
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+    // public function category()
+    // {
+    //     return $this->belongsTo(Category::class);
+    // }
 }

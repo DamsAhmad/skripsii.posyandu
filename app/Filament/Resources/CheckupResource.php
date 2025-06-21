@@ -104,7 +104,25 @@ class CheckupResource extends Resource
                     ->options([
                         'active' => 'Aktif',
                         'completed' => 'Selesai',
+                    ]),
+                Tables\Filters\Filter::make('checkup_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('dari_tanggal'),
+                        Forms\Components\DatePicker::make('sampai_tanggal'),
                     ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['dari_tanggal'] ?? null,
+                                fn($query, $date) =>
+                                $query->whereDate('checkup_date', '>=', $date)
+                            )
+                            ->when(
+                                $data['sampai_tanggal'] ?? null,
+                                fn($query, $date) =>
+                                $query->whereDate('checkup_date', '<=', $date)
+                            );
+                    })
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([

@@ -1,0 +1,9 @@
+.fi-ta-filter-dropdown {
+    max-width: 700px !important;
+    width: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 999 !important;
+    margin-top: 8px;
+}
