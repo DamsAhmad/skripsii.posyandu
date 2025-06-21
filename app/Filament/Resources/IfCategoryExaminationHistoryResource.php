@@ -11,9 +11,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class ExaminationHistoryResource extends Resource
+class IfCategoryExaminationHistoryResource extends Resource
 {
-    protected static ?string $model = Examination::class;
+    // protected static ?string $model = Examination::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationLabel = 'Riwayat Pemeriksaan';
@@ -48,15 +48,17 @@ class ExaminationHistoryResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('member.category')
+                Tables\Columns\TextColumn::make('member.category.name')
                     ->label('Kategori')
                     ->badge()
+                    ->formatStateUsing(fn($state) => $state ?? '-')
                     ->color(fn(string $state): string => match ($state) {
                         'balita' => 'info',
                         'anak-remaja' => 'success',
                         'dewasa' => 'primary',
                         'lansia' => 'warning',
                         'ibu hamil' => 'danger',
+                        default => 'gray'
                     })
                     ->searchable(),
 
@@ -91,18 +93,6 @@ class ExaminationHistoryResource extends Resource
                 Tables\Columns\TextColumn::make('cholesterol')
                     ->label('Kolestrol')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('tension')
-                    ->label('Tensi Darah')
-                    ->suffix(' mmHg'),
-                Tables\Columns\TextColumn::make('uric_acid')
-                    ->label('Asam Urat')
-                    ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('blood_sugar')
-                    ->label('Gula Darah')
-                    ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('cholesterol')
-                    ->label('Kolestrol')
-                    ->suffix(' mg/dL'),
                 Tables\Columns\TextColumn::make('weight_status')
                     ->label('Status Gizi')
                     ->badge()
@@ -113,7 +103,6 @@ class ExaminationHistoryResource extends Resource
                         'Obesitas' => 'danger',
                         default => 'gray',
                     }),
-
 
             ])
             ->filters([
@@ -189,13 +178,6 @@ class ExaminationHistoryResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
@@ -207,6 +189,13 @@ class ExaminationHistoryResource extends Resource
         return $query;
     }
 
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
 
     public static function getPages(): array
     {

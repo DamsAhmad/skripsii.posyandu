@@ -26,7 +26,7 @@ class ViewMember extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('back_to_list')
+            Action::make('Kembali Ke List Member')
                 ->label('Kembali ke List Peserta')
                 ->icon('heroicon-o-arrow-left')
                 ->color('success')

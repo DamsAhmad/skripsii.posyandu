@@ -22,15 +22,17 @@ use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\IconPosition;
 use Filament\Forms\Get;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+
 
 class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
     protected static ?string $navigationGroup = 'Data Peserta';
-    protected static ?string $navigationLabel = 'Data Peserta Total';
+    protected static ?string $navigationLabel = 'Data Peserta';
     protected static ?int $navigationSort = 0;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $slug = 'DataPeserta';
+    protected static ?string $slug = 'IfCategoryDataPeserta';
     protected static ?string $modelLabel = 'Data Peserta';
     protected static ?string $pluralModelLabel = 'Data peserta';
 
@@ -178,6 +180,11 @@ class MemberResource extends Resource
                             \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) < 180 ||
                             \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) > 600
                     ),
+                Forms\Components\Select::make('category_id')
+                    ->label('Kategori')
+                    ->relationship('category', 'name')
+                    ->hidden()
+                    ->dehydrated(),
             ]),
         ];
     }
@@ -190,31 +197,33 @@ class MemberResource extends Resource
                 Tables\Columns\TextColumn::make('no')
                     ->label('No.')
                     ->rowIndex(),
+
                 Tables\Columns\TextColumn::make('member_name')
                     ->label('Nama')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category')
+
+                Tables\Columns\TextColumn::make('category.name')
                     ->label('Kategori')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-
+                    ->color(fn(string $state): string => match (strtolower($state)) {
                         'balita' => 'info',
                         'anak-remaja' => 'success',
                         'dewasa' => 'primary',
-                        'lansia' => 'danger',
+                        'lansia' => 'warning',
                         'ibu hamil' => 'danger',
+                        default => 'gray',
                     }),
+
                 Tables\Columns\TextColumn::make('gender')
                     ->label('Jenis Kelamin')
                     ->searchable(),
+
                 Tables\Columns\TextColumn::make('age')
                     ->label('Usia')
                     ->state(function ($record) {
                         $birthdate = Carbon::parse($record->birthdate);
                         $now = Carbon::now();
-
                         $diff = $birthdate->diff($now);
-
                         $years = $diff->y;
                         $months = $diff->m;
 
@@ -229,16 +238,11 @@ class MemberResource extends Resource
                         }
                     }),
             ])
-            ->defaultSort('category', 'asc')
+            ->defaultSort('category_id', 'asc')
             ->filters([
-                SelectFilter::make('Filter Kategori')
-                    ->options([
-                        'BALITA' => 'balita',
-                        'ANAK-REMAJA' => 'anak-remaja',
-                        'DEWASA' => 'dewasa',
-                        'LANSIA' => 'lansia',
-                        'IBU HAMIL' => 'ibu hamil'
-                    ]),
+                SelectFilter::make('category_id')
+                    ->label('Filter Kategori')
+                    ->relationship('category', 'name'),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -248,16 +252,16 @@ class MemberResource extends Resource
                         ->color('info')
                         ->icon('heroicon-o-user')
                         ->iconPosition(IconPosition::After),
+
                     Tables\Actions\EditAction::make()
                         ->iconPosition(IconPosition::After),
+
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
                         ->modalHeading('Hapus Anggota')
                         ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
-                        ->action(function (Member $record) {
-                            $record->delete();
-                        })
-                        ->iconPosition(IconPosition::After)
+                        ->action(fn(Member $record) => $record->delete())
+                        ->iconPosition(IconPosition::After),
                 ])
                     ->label('Aksi')
                     ->icon('heroicon-s-chevron-down')
@@ -265,40 +269,51 @@ class MemberResource extends Resource
                     ->color('primary')
                     ->iconPosition(IconPosition::After)
                     ->button(),
-
             ]);
     }
 
-    public static function calculateCategory($birthdate,  $gender = null, $isPregnant = false): string
+    public static function calculateCategory($birthdate, $gender, $isPregnant): ?int
     {
-        $birth = Carbon::parse($birthdate);
-        $ageInMonths = $birth->diffInMonths(Carbon::now());
+        $ageInMonths = \Carbon\Carbon::parse($birthdate)->diffInMonths(now());
 
-        if ($isPregnant && $gender === 'Perempuan' && $ageInMonths >= 180 && $ageInMonths <= 600) {
-            return 'ibu hamil';
+        // Cek kategori khusus untuk ibu hamil
+        if ($isPregnant && $gender === 'Perempuan') {
+            return \App\Models\Category::where('for_pregnant', true)->value('id');
         }
-        if ($ageInMonths <= 60) {
-            return 'balita';
-        } elseif ($ageInMonths <= 228) {
-            return 'anak-remaja';
-        } elseif ($ageInMonths <= 539) {
-            return 'dewasa';
-        } else {
-            return 'lansia';
-        }
+
+        // Ambil kategori berdasarkan range umur
+        return \App\Models\Category::where('min_age_months', '<=', $ageInMonths)
+            ->where('max_age_months', '>=', $ageInMonths)
+            ->where(function ($query) {
+                $query->whereNull('for_pregnant')->orWhere('for_pregnant', false);
+            })
+            ->value('id');
     }
+
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['is_pregnant'] = filter_var($data['is_pregnant'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $data['category'] = self::calculateCategory($data['birthdate'], $data['gender'] ?? null, $data['is_pregnant']);
+        $data['category_id'] = MemberResource::calculateCategory(
+            $data['birthdate'],
+            $data['gender'],
+            $data['is_pregnant'] ?? false
+        );
+
+
+        Log::info('Category ID:', [$data['category_id']]);
+
+
         return $data;
     }
 
     public static function mutateFormDataBeforeSave(array $data): array
     {
-        $data['is_pregnant'] = filter_var($data['is_pregnant'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $data['category'] = self::calculateCategory($data['birthdate'], $data['gender'] ?? null, $data['is_pregnant']);
+        $data['category_id'] = MemberResource::calculateCategory(
+            $data['birthdate'],
+            $data['gender'],
+            $data['is_pregnant'] ?? false
+        );
+
         return $data;
     }
 

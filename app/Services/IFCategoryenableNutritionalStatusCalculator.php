@@ -13,11 +13,11 @@ class NutritionalStatusCalculator
 {
     public static function calculate(Member $member, Examination $exam)
     {
-
         $checkupDate = self::getCheckupDate($exam);
         $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
 
         Log::debug('Age in months: ' . $ageInMonths);
+
         if (!$exam->weight || !$exam->height) {
             return [
                 'status' => 'Data tidak lengkap',
@@ -34,20 +34,22 @@ class NutritionalStatusCalculator
             return self::calculatePregnantStatus($imt, $lila, $exam->gestational_week);
         }
 
-        if ($member->category === 'balita') {
+        $categoryName = $member->category?->name;
+
+        if ($categoryName === 'balita') {
             return self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
         }
 
-        if ($member->category === 'anak-remaja') {
+        if ($categoryName === 'anak-remaja') {
             return self::calculateIMTForAge($ageInMonths, $exam->weight, $exam->height, $member->gender);
         }
 
-        if (in_array($member->category, ['dewasa', 'lansia'])) {
+        if (in_array($categoryName, ['dewasa', 'lansia'])) {
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
 
             return [
-                'status' => self::categorizeIMT($imt, $member->category),
+                'status' => self::categorizeIMT($imt, $categoryName),
                 'z_score' => null,
                 'anthropometric_value' => $imt
             ];
@@ -60,9 +62,9 @@ class NutritionalStatusCalculator
         ];
     }
 
+
     public static function generateStatus(Member $member, Examination $exam): string
     {
-
         $checkupDate = self::getCheckupDate($exam);
 
         if (!$exam->weight || !$exam->height) {
@@ -73,26 +75,30 @@ class NutritionalStatusCalculator
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
             $lila = $exam->arm_circumference;
-            return self::combinePregnantStatus(self::categorizePregnantIMT($imt), ($lila < 23.5 ? 'KEK' : 'Normal'), $exam->gestational_week);
+            return self::combinePregnantStatus(
+                self::categorizePregnantIMT($imt),
+                ($lila < 23.5 ? 'KEK' : 'Normal'),
+                $exam->gestational_week
+            );
         }
 
-        if ($member->category === 'balita') {
-            $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+        $categoryName = $member->category?->name;
+        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+
+        if ($categoryName === 'balita') {
             $result = self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
             return $result['status'];
         }
 
-        if ($member->category === 'anak-remaja') {
-            $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+        if ($categoryName === 'anak-remaja') {
             $result = self::calculateIMTForAge($ageInMonths, $exam->weight, $exam->height, $member->gender);
             return $result['status'];
         }
 
-
-        if (in_array($member->category, ['dewasa', 'lansia'])) {
+        if (in_array($categoryName, ['dewasa', 'lansia'])) {
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
-            return self::categorizeIMT($imt, $member->category);
+            return self::categorizeIMT($imt, $categoryName);
         }
 
         return 'Kategori tidak didukung';
@@ -104,18 +110,45 @@ class NutritionalStatusCalculator
         $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
 
         if (!$exam->weight || !$exam->height) return null;
-        if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) return null;
 
-        $ageInMonths = $member->birthdate->diffInMonths(now());
+        $categoryName = $member->category?->name;
 
-        if ($member->category === 'balita') {
+        if ($member->is_pregnant || in_array($categoryName, ['dewasa', 'lansia'])) return null;
+
+        if ($categoryName === 'balita') {
             $result = self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
             return $result['z_score'];
         }
 
-        if ($member->category === 'anak-remaja') {
+        if ($categoryName === 'anak-remaja') {
             $result = self::calculateIMTForAge($ageInMonths, $exam->weight, $exam->height, $member->gender);
             return $result['z_score'];
+        }
+
+        return null;
+    }
+
+    public static function generateAnthropometric(Member $member, Examination $exam): ?float
+    {
+        if (!$exam->weight || !$exam->height) return null;
+
+        $categoryName = $member->category?->name;
+
+        if ($member->is_pregnant || in_array($categoryName, ['dewasa', 'lansia'])) {
+            $heightInMeters = $exam->height / 100;
+            return $exam->weight / ($heightInMeters * $heightInMeters);
+        }
+
+        $checkupDate = self::getCheckupDate($exam);
+        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
+
+        if ($categoryName === 'balita') {
+            return (float) $exam->weight;
+        }
+
+        if ($categoryName === 'anak-remaja') {
+            $heightInMeters = $exam->height / 100;
+            return $exam->weight / ($heightInMeters * $heightInMeters);
         }
 
         return null;
@@ -134,29 +167,6 @@ class NutritionalStatusCalculator
         return now();
     }
 
-    public static function generateAnthropometric(Member $member, Examination $exam): ?float
-    {
-        if (!$exam->weight || !$exam->height) return null;
-
-        if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) {
-            $heightInMeters = $exam->height / 100;
-            return $exam->weight / ($heightInMeters * $heightInMeters);
-        }
-
-        $checkupDate = self::getCheckupDate($exam);
-        $ageInMonths = $member->birthdate->diffInMonths($checkupDate);
-
-        if ($member->category === 'balita') {
-            return (float) $exam->weight;
-        }
-
-        if ($member->category === 'anak-remaja') {
-            $heightInMeters = $exam->height / 100;
-            return $exam->weight / ($heightInMeters * $heightInMeters);
-        }
-
-        return null;
-    }
 
     private static function calculateWeightForAge($ageMonths, $weight, $gender)
     {
@@ -290,9 +300,9 @@ class NutritionalStatusCalculator
         return 'Obesitas';
     }
 
-    private static function categorizeIMT($imt, $category)
+    private static function categorizeIMT($imt, $categoryName)
     {
-        if ($category === 'dewasa') {
+        if ($categoryName === 'dewasa') {
             if ($imt < 18.5) {
                 return 'Kurus';
             } elseif ($imt < 25.0) {
@@ -306,7 +316,7 @@ class NutritionalStatusCalculator
             } else {
                 return 'Obesitas Kelas III';
             }
-        } elseif ($category === 'lansia') {
+        } elseif ($categoryName === 'lansia') {
             if ($imt < 22.0) {
                 return 'Kurus (Risiko Malnutrisi) (IMT: ' . round($imt, 1) . ')';
             } elseif ($imt < 27.0) {
@@ -323,8 +333,12 @@ class NutritionalStatusCalculator
     {
         $member = $exam->member;
         $status = $exam->weight_status;
-        $category = $member->category;
+        $category = $member->category?->name;
         $isPregnant = $member->is_pregnant;
+
+        if (!$category) {
+            return "Kategori peserta belum diatur.";
+        }
 
         $recommendation = "Hasil pemeriksaan: $status. ";
 
