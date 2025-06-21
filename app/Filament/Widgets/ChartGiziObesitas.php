@@ -24,7 +24,6 @@ class ChartGiziObesitas extends ChartWidget
                 ->where('weight_status', 'Obesitas')
                 ->count();
 
-
             $monthName = Carbon::createFromDate($year, $month, 1)
                 ->locale('id')
                 ->translatedFormat('F');
@@ -39,6 +38,8 @@ class ChartGiziObesitas extends ChartWidget
                     'data' => $data->values(),
                     'borderColor' => '#0ea5e9',
                     'backgroundColor' => '#7dd3fc',
+                    'fill' => true,
+                    'tension' => 0.3,
                 ],
             ],
             'labels' => $data->keys(),
@@ -48,5 +49,20 @@ class ChartGiziObesitas extends ChartWidget
     protected function getType(): string
     {
         return 'line';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => [
+                'y' => [
+                    'ticks' => [
+                        'precision' => 0,
+                        'stepSize' => 1,
+                    ],
+                    'beginAtZero' => true,
+                ],
+            ],
+        ];
     }
 }
