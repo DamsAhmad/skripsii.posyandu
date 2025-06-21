@@ -4,38 +4,36 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Member;
-use Illuminate\Console\Scheduling\Schedule;
-
+use App\Filament\Resources\MemberResource;
 
 class UpdateMemberCategory extends Command
 {
     protected $signature = 'member:update-category';
-    protected $description = 'Update kategori peserta berdasarkan usia dan kondisi kehamilan';
+    protected $description = 'Update category_id peserta berdasarkan usia dan kondisi kehamilan';
 
     public function handle()
     {
+        $updatedCount = 0;
+
         $members = Member::all();
 
         foreach ($members as $member) {
-            $newCategory = \App\Filament\Resources\MemberResource::calculateCategory(
+            $newCategoryId = MemberResource::calculateCategory(
                 $member->birthdate,
                 $member->gender,
                 $member->is_pregnant
             );
 
-            if ($member->category !== $newCategory) {
-                $member->category = $newCategory;
+            if ($member->category_id !== $newCategoryId) {
+                $member->category_id = $newCategoryId;
                 $member->save();
-                $this->info("Updated member {$member->member_name} to category {$newCategory}");
+
+                $this->info("✅ Updated: {$member->member_name} => category_id {$newCategoryId}");
+                $updatedCount++;
             }
         }
 
-        $this->info('Kategori peserta berhasil diperbarui.');
+        $this->info("🎉 Selesai. Total diperbarui: {$updatedCount}");
         return 0;
-    }
-
-    protected function schedule(Schedule $schedule): void
-    {
-        $schedule->command('member:update-category')->dailyAt('00:05');
     }
 }

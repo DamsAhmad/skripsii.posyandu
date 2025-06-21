@@ -29,9 +29,4 @@ class Checkup extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-    public function results(): HasMany
-    {
-        return $this->hasMany(Result::class);
-    }
 }

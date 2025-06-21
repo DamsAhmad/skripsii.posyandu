@@ -220,13 +220,13 @@ class ExaminationRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('member.category')
                     ->label('Kategori')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-
+                    ->color(fn(?string $state): string => match ($state) {
                         'balita' => 'info',
                         'anak-remaja' => 'success',
                         'dewasa' => 'primary',
                         'lansia' => 'danger',
                         'ibu hamil' => 'danger',
+                        default => 'gray'
                     }),
                 Tables\Columns\TextColumn::make('member.birthdate')
                     ->label('Usia Saat Pemeriksaan')
@@ -276,9 +276,21 @@ class ExaminationRelationManager extends RelationManager
                                 $record->load('checkup');
                             }
 
-                            $status = \App\Services\NutritionalStatusCalculator::generateStatus($record->member, $record);
-                            $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($record->member, $record);
-                            $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($record->member, $record);
+                            $member = $record->member;
+
+                            if (!$member->category) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Kategori belum diatur')
+                                    ->body('Peserta belum memiliki kategori. Silakan atur kategori terlebih dahulu.')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $status = \App\Services\NutritionalStatusCalculator::generateStatus($member, $record);
+                            $z_score = \App\Services\NutritionalStatusCalculator::generateZscore($member, $record);
+                            $anthropometric = \App\Services\NutritionalStatusCalculator::generateAnthropometric($member, $record);
                             $recommendation = \App\Services\NutritionalStatusCalculator::generateRecommendation($record);
 
                             $record->update([
@@ -287,12 +299,14 @@ class ExaminationRelationManager extends RelationManager
                                 'anthropometric_value' => $anthropometric,
                                 'recommendation' => $recommendation,
                             ]);
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Status Gizi Diperbarui: ' . $status)
                                 ->body($recommendation)
                                 ->success()
                                 ->send();
                         }),
+
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
                         ->modalHeading('Hapus Data Pemeriksaan')

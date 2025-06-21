@@ -17,7 +17,8 @@ class Member extends Model
         'father',
         'mother',
         'parent_phone',
-        'is_pregnant'
+        'is_pregnant',
+        'category_id'
     ];
 
     protected $casts = [
@@ -32,5 +33,10 @@ class Member extends Model
     public function examinations()
     {
         return $this->hasMany(Examination::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

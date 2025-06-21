@@ -23,10 +23,9 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?string $navigationGroup = 'Data Kader';
+    protected static ?string $navigationGroup = 'Manajemen Posyandu';
     protected static ?string $navigationLabel = 'Data Kader';
-    protected static ?int $navigationSort = 1;
-    // protected static ?string $slug = 'DataKader';
+    protected static ?int $navigationSort = 0;
     protected static ?string $modelLabel = 'Data Kader';
     protected static ?string $pluralModelLabel = 'Data Kader';
 
@@ -83,8 +82,6 @@ class UserResource extends Resource
                         'Laki-laki' => 'info',
                         'Perempuan' => 'success',
                     }),
-                // Tables\Columns\TextColumn::make('created_at')
-                //     ->dateTime('d M Y - H:i'),
             ])
             ->filters([
                 //
