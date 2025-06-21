@@ -104,6 +104,24 @@ class ExaminationHistoryResource extends Resource
 
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('member_id')
+                    ->label('Nama Peserta')
+                    ->options(fn() => \App\Models\Member::pluck('member_name', 'id'))
+                    ->searchable()
+                    ->default(request()->get('member_id')) // auto aktif dari query param
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->where('member_id', $data['value']);
+                        }
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (isset($data['value'])) {
+                            $name = \App\Models\Member::find($data['value'])?->member_name;
+                            return $name ? "Nama: $name" : null;
+                        }
+                        return null;
+                    }),
+
                 Tables\Filters\SelectFilter::make('category')
                     ->label('Filter Kategori')
                     ->options([
@@ -157,6 +175,18 @@ class ExaminationHistoryResource extends Resource
                 //
             ]);
     }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (request()->has('member_id')) {
+            $query->where('member_id', request()->get('member_id'));
+        }
+
+        return $query;
+    }
+
 
     public static function getRelations(): array
     {
