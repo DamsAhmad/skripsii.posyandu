@@ -231,14 +231,108 @@ class MemberResource extends Resource
             ])
             ->defaultSort('category', 'asc')
             ->filters([
-                SelectFilter::make('Filter Kategori')
+                // Tables\Filters\SelectFilter::make('member_id')
+                //     ->label('Nama Peserta')
+                //     ->options(fn() => \App\Models\Member::pluck('member_name', 'id'))
+                //     ->searchable()
+                //     ->default(request()->get('member_id'))
+                //     ->query(function (Builder $query, array $data) {
+                //         if (!empty($data['value'])) {
+                //             $query->where('id', $data['value']);
+                //         }
+                //     })
+                //     ->indicateUsing(function (array $data): ?string {
+                //         if (isset($data['value'])) {
+                //             $name = \App\Models\Member::find($data['value'])?->member_name;
+                //             return $name ? "Nama: $name" : null;
+                //         }
+                //         return null;
+                //     }),
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('Filter Kategori')
                     ->options([
-                        'BALITA' => 'balita',
-                        'ANAK-REMAJA' => 'anak-remaja',
-                        'DEWASA' => 'dewasa',
-                        'LANSIA' => 'lansia',
-                        'IBU HAMIL' => 'ibu hamil'
-                    ]),
+                        'balita' => 'balita',
+                        'anak-remaja' => 'anak remaja',
+                        'dewasa' => 'dewasa',
+                        'lansia' => 'lansia',
+                        'ibu hamil' => 'ibu hamil',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->where('category', $data['value']);
+                        }
+                    }),
+                Tables\Filters\SelectFilter::make('gender')
+                    ->label('Jenis Kelamin')
+                    ->options([
+                        'Laki-laki' => 'Laki-laki',
+                        'Perempuan' => 'Perempuan',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->where('gender', $data['value']);
+                        }
+                    }),
+                Tables\Filters\Filter::make('usia')
+                    ->label('Filter Usia')
+                    ->form([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('min_age_value')
+                                ->label('Usia Minimal')
+                                ->numeric()
+                                ->dehydrated(),
+
+                            Forms\Components\Select::make('min_age_unit')
+                                ->label('Satuan')
+                                ->options([
+                                    'bulan' => 'Bulan',
+                                    'tahun' => 'Tahun',
+                                ])
+                                ->dehydrated(),
+                        ]),
+
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('max_age_value')
+                                ->label('Usia Maksimal')
+                                ->numeric()
+                                ->dehydrated(),
+
+                            Forms\Components\Select::make('max_age_unit')
+                                ->label('Satuan')
+                                ->options([
+                                    'bulan' => 'Bulan',
+                                    'tahun' => 'Tahun',
+                                ])
+                                ->dehydrated(),
+                        ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $today = Carbon::today();
+
+                        if (!empty($data['min_age_value']) && !empty($data['min_age_unit'])) {
+                            $unit = $data['min_age_unit'];
+                            $value = (int) $data['min_age_value'];
+
+                            $maxBirthdate = $unit === 'bulan'
+                                ? $today->copy()->subMonths($value)
+                                : $today->copy()->subYears($value);
+
+                            $query->whereDate('birthdate', '<=', $maxBirthdate);
+                        }
+
+                        if (!empty($data['max_age_value']) && !empty($data['max_age_unit'])) {
+                            $unit = $data['max_age_unit'];
+                            $value = (int) $data['max_age_value'];
+
+                            $minBirthdate = $unit === 'bulan'
+                                ? $today->copy()->subMonths($value + 1)->addDay()
+                                : $today->copy()->subYears($value + 1)->addDay();
+
+                            $query->whereDate('birthdate', '>=', $minBirthdate);
+                        }
+
+                        return $query;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([

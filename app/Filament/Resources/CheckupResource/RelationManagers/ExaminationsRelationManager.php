@@ -23,6 +23,8 @@ use App\Models\Checkup;
 use Carbon\Carbon;
 use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\IconPosition;
+use Illuminate\Database\Eloquent\Builder;
+
 
 class ExaminationRelationManager extends RelationManager
 {
@@ -230,6 +232,7 @@ class ExaminationRelationManager extends RelationManager
                     }),
                 Tables\Columns\TextColumn::make('member.birthdate')
                     ->label('Usia Saat Pemeriksaan')
+                    ->searchable()
                     ->state(function ($record) {
                         $birthdate = Carbon::parse($record->member->birthdate);
                         $birthcheck = Carbon::parse($record->checkup_date);
@@ -264,6 +267,91 @@ class ExaminationRelationManager extends RelationManager
                         str_contains($state, 'Kurang') => 'warning',
                         str_contains($state, 'Normal') => 'success',
                         default => 'gray',
+                    }),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('Kategori')
+                    ->options([
+                        'balita' => 'Balita',
+                        'anak-remaja' => 'Anak Remaja',
+                        'dewasa' => 'Dewasa',
+                        'lansia' => 'Lansia',
+                        'ibu hamil' => 'Ibu Hamil',
+                    ])
+                    ->default(null)
+                    ->placeholder('Semua')
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('member', function ($q) use ($data) {
+                                if ($data['value'] === 'ibu hamil') {
+                                    $q->where('category', 'like', '%obesitas%');
+                                } else {
+                                    $q->where('category', $data['value']);
+                                }
+                            });
+                        }
+                        return $query;
+                    }),
+                Tables\Filters\Filter::make('weight_range')
+                    ->label('Berat Badan (kg)')
+                    ->form([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('min')
+                                ->label('BB Minimal')
+                                ->numeric()
+                                ->dehydrated(),
+                            Forms\Components\TextInput::make('max')
+                                ->label('BB Maksimal')
+                                ->numeric()
+                                ->dehydrated(),
+                        ]),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when(filled($data['min']), fn($q) => $q->where('weight', '>=', $data['min']))
+                            ->when(filled($data['max']), fn($q) => $q->where('weight', '<=', $data['max']));
+                    }),
+
+
+                Tables\Filters\Filter::make('tinggi_badan')
+                    ->label('Filter Tinggi Badan')
+                    ->form([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('min')
+                                ->label('TB Minimal (cm)')
+                                ->numeric()
+                                ->dehydrated(),
+
+                            Forms\Components\TextInput::make('max')
+                                ->label('TB Maksimal (cm)')
+                                ->numeric()
+                                ->dehydrated(),
+                        ]),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when(filled($data['min']), fn($q) => $q->where('height', '>=', $data['min']))
+                            ->when(filled($data['max']), fn($q) => $q->where('height', '<=', $data['max']));
+                    }),
+
+
+                Tables\Filters\SelectFilter::make('weight_status')
+                    ->label('Status Gizi')
+                    ->options([
+                        'Normal' => 'Normal',
+                        'Kurus' => 'Kurus',
+                        'Gemuk' => 'Gemuk',
+                        'Obesitas' => 'Obesitas',
+                        'Sangat Kurus' => 'Sangat Kurus',
+                    ])
+                    ->default(null)
+                    ->placeholder('Semua')
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->where('weight_status', 'like', '%' . $data['value'] . '%');
+                        }
+                        return $query;
                     }),
             ])
 

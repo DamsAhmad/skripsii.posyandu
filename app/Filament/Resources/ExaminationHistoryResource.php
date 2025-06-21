@@ -121,10 +121,10 @@ class ExaminationHistoryResource extends Resource
                     ->label('Nama Peserta')
                     ->options(fn() => \App\Models\Member::pluck('member_name', 'id'))
                     ->searchable()
-                    ->default(request()->get('member_id')) // auto aktif dari query param
+                    ->default(request()->get('member_id'))
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
-                            $query->where('member_id', $data['value']);
+                            $query->where('id', $data['value']);
                         }
                     })
                     ->indicateUsing(function (array $data): ?string {
