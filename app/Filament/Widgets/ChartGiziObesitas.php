@@ -21,7 +21,7 @@ class ChartGiziObesitas extends ChartWidget
                 $query->whereYear('checkup_date', $year)
                     ->whereMonth('checkup_date', $month);
             })
-                ->where('weight_status', 'Obesitas')
+                ->where('weight_status', 'like', '%Obesitas%')
                 ->count();
 
             $monthName = Carbon::createFromDate($year, $month, 1)
