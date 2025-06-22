@@ -21,7 +21,7 @@ class ChartGiziBuruk extends ChartWidget
                 $query->whereYear('checkup_date', $year)
                     ->whereMonth('checkup_date', $month);
             })
-                ->where('weight_status', 'like', '%Gizi Buruk%') // jaga-jaga pakai like
+                ->where('weight_status', 'like', '%Gizi Buruk%')
                 ->count();
 
             $monthName = Carbon::createFromDate($year, $month, 1)
@@ -51,15 +51,14 @@ class ChartGiziBuruk extends ChartWidget
         return 'line';
     }
 
-    // ✅ Tambahkan ini untuk memastikan Y axis integer
     protected function getOptions(): array
     {
         return [
             'scales' => [
                 'y' => [
                     'ticks' => [
-                        'precision' => 0, // hilangkan koma
-                        'stepSize' => 1,  // interval 1
+                        'precision' => 0,
+                        'stepSize' => 1,
                     ],
                     'beginAtZero' => true,
                 ],
