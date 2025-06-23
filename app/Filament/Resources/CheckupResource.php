@@ -97,7 +97,8 @@ class CheckupResource extends Resource
 
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Petugas')
-                    ->sortable(),
+                    ->default('Akun petugas telah dihapus')
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')

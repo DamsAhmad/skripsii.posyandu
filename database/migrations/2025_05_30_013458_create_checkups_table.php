@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('checkup_date');
             $table->string('location');
             $table->string('annot')->nullable();
-            $table->foreignId('user_id')->constrained();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('status');
             $table->timestamps();
         });
