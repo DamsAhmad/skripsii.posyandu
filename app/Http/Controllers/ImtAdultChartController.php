@@ -16,13 +16,11 @@ class ImtAdultChartController extends Controller
             $checkupDate = optional($exam->checkup)->checkup_date;
 
             if (!$checkupDate || !$member->birthdate) {
-                return null; // lewati kalau ada data kosong
+                return null;
             }
 
-            // Hitung usia dari tanggal lahir ke tanggal pemeriksaan
             $days = Carbon::parse($member->birthdate)->diffInDays(Carbon::parse($checkupDate));
-            $usiaTahun = round($days / 365.25, 2); // gunakan angka desimal
-
+            $usiaTahun = round($days / 365.25, 2);
             $heightInMeters = $exam->height / 100;
             $imt = $exam->weight / ($heightInMeters * $heightInMeters);
 
@@ -33,7 +31,7 @@ class ImtAdultChartController extends Controller
                 'weight' => $exam->weight,
                 'height' => $exam->height,
             ];
-        })->filter(); // filter() untuk buang null
+        })->filter();
 
 
         return view('imtadult-chart', [

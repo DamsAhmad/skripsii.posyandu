@@ -132,6 +132,7 @@ class ExaminationRelationManager extends RelationManager
                             case 'anak-remaja':
                             case 'dewasa':
                             case 'lansia':
+                            case 'ibu hamil':
                                 $fields[] = TextInput::make('abdominal_circumference')
                                     ->label('Lingkar Perut (cm)')
                                     ->numeric()
@@ -155,7 +156,7 @@ class ExaminationRelationManager extends RelationManager
                                         'regex' => 'Format harus seperti 120/80',
                                     ]);
 
-                                if (in_array($category, ['dewasa', 'lansia'])) {
+                                if (in_array($category, ['dewasa', 'lansia', 'ibu hamil'])) {
                                     $fields[] = TextInput::make('uric_acid')
                                         ->label('Asam Urat (mg/dL)')
                                         ->numeric()
@@ -181,20 +182,11 @@ class ExaminationRelationManager extends RelationManager
                                         ->label('Usia Kehamilan (minggu)')
                                         ->required()
                                         ->numeric()
-                                        ->minValue(4)
+                                        ->minValue(1)
                                         ->maxValue(42)
                                         ->integer(),
-
-                                    TextInput::make('arm_circumference')
-                                        ->label('Lingkar Lengan Atas (cm)')
-                                        ->required()
-                                        ->numeric()
-                                        ->minValue(10)
-                                        ->maxValue(50)
-                                        ->step(0.1)
-                                        ->helperText('KEK jika < 23.5 cm'),
                                 ])
-                                ->columns(2);
+                                ->columns(1);
                         }
 
                         return $fields;
