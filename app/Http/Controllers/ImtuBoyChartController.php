@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\Member;
+use App\Models\GrowthReference;
+use App\Services\NutritionalStatusCalculator;
 
 class ImtuBoyChartController extends Controller
 {
     public function show($id)
     {
         $member = Member::with(['examinations.checkup'])->findOrFail($id);
+        $birthDate = Carbon::parse($member->birthdate);
 
         $dataPoints = $member->examinations
             ->sortBy(function ($examination) {
@@ -19,8 +22,7 @@ class ImtuBoyChartController extends Controller
             ->filter(function ($examination) {
                 return $examination->checkup && $examination->anthropometric_value;
             })
-            ->map(function ($examination) use ($member) {
-                $birth = Carbon::parse($member->birthdate);
+            ->map(function ($examination) use ($member, $birthDate) {
                 $checkupDate = optional($examination->checkup)->checkup_date;
 
                 if (!$checkupDate) {
@@ -29,7 +31,7 @@ class ImtuBoyChartController extends Controller
                 }
 
                 $checkupDate = Carbon::parse($checkupDate);
-                $ageInMonths = $birth->diffInMonths($checkupDate);
+                $ageInMonths = $birthDate->diffInMonths($checkupDate);
                 $ageInYears = round($ageInMonths / 12, 2);
 
                 $imt = round((float) $examination->anthropometric_value, 1);
@@ -39,14 +41,42 @@ class ImtuBoyChartController extends Controller
                     return null;
                 }
 
-                return ['x' => $ageInYears, 'y' => $imt];
+                $status = NutritionalStatusCalculator::generateStatus($member, $examination);
+                $zScore = NutritionalStatusCalculator::generateZscore($member, $examination);
+
+                return [
+                    'x' => $ageInYears,
+                    'y' => $imt,
+                    'z_score' => $zScore,
+                    'status' => $status,
+                ];
             })
             ->filter()
             ->values();
 
+        $whoCurves = GrowthReference::where('indicator', 'imtu')
+            ->where('gender', $member->gender)
+            ->orderBy('age_months')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                $ageInYears = round($row->age_months / 12, 2);
+                return [
+                    $ageInYears => [
+                        '-3' => $row->sd_minus_3,
+                        '-2' => $row->sd_minus_2,
+                        '-1' => $row->sd_minus_1,
+                        '0'  => $row->median,
+                        '+1' => $row->sd_plus_1,
+                        '+2' => $row->sd_plus_2,
+                        '+3' => $row->sd_plus_3,
+                    ],
+                ];
+            });
+
         return view('imtuboy-chart', [
             'member' => $member,
             'dataPoints' => $dataPoints,
+            'whoCurves' => $whoCurves,
         ]);
     }
 }

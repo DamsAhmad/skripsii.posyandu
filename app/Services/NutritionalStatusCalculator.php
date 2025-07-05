@@ -106,8 +106,6 @@ class NutritionalStatusCalculator
         if (!$exam->weight || !$exam->height) return null;
         if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) return null;
 
-        $ageInMonths = $member->birthdate->diffInMonths(now());
-
         if ($member->category === 'balita') {
             $result = self::calculateWeightForAge($ageInMonths, $exam->weight, $member->gender);
             return $result['z_score'];
@@ -181,18 +179,27 @@ class NutritionalStatusCalculator
         }
 
         if ($z_score < -3) {
-            $status = 'Gizi Buruk';
+            $status = 'BB sangat kurang';
         } elseif ($z_score < -2) {
-            $status = 'Gizi Kurang';
+            $status = 'BB kurang';
         } elseif ($z_score <= 1) {
-            $status = 'Normal';
-        } elseif ($z_score <= 2) {
-            $status = 'Beresiko Gizi Lebih';
-        } elseif ($z_score <= 3) {
-            $status = 'Gizi Lebih';
+            $status = 'BB normal';
         } else {
-            $status = 'Obesitas';
+            $status = 'Risiko BB lebih';
         }
+
+
+
+        Log::info([
+            'age' => $ageMonths,
+            'gender' => $gender,
+            'weight' => $weight,
+            'median' => $median,
+            'sd_minus' => $sd_minus,
+            'sd_plus' => $sd_plus,
+            'z_score' => $z_score,
+        ]);
+
 
         return [
             'status' => $status,
@@ -212,47 +219,70 @@ class NutritionalStatusCalculator
             return [
                 'status' => 'Data referensi tidak tersedia',
                 'z_score' => null,
-                'anthropometric_value' => (float) $actualIMT
+                'anthropometric_value' => round($actualIMT, 1),
             ];
         }
 
-        $median = $reference->median;
-        $sd_minus = $reference->sd_minus;
-        $sd_plus = $reference->sd_plus;
+        // Bangun array kurva SD
+        $curve = [
+            "-3" => $reference->sd_minus_3,
+            "-2" => $reference->sd_minus_2,
+            "0"  => $reference->median,
+            "+1" => $reference->sd_plus_1,
+            "+2" => $reference->sd_plus_2,
+            "+3" => $reference->sd_plus_3,
+        ];
 
-        if ($actualIMT < $median) {
-            $z_score = ($actualIMT - $median) / ($median - $sd_minus);
+        $z_score = null;
+
+        // Perhitungan Z-score berbasis WHO interpolation
+        if ($actualIMT < $curve["0"]) {
+            if ($actualIMT < $curve["-3"]) {
+                $denom = $curve["-2"] - $curve["-3"];
+                $z_score = $denom != 0
+                    ? -3 + (($actualIMT - $curve["-3"]) / $denom)
+                    : -3;
+            } elseif ($actualIMT < $curve["-2"]) {
+                $z_score = -2 + (($actualIMT - $curve["-2"]) / ($curve["-2"] - $curve["-3"]));
+            } elseif ($actualIMT < $curve["0"]) {
+                $z_score = ($actualIMT - $curve["0"]) / ($curve["0"] - $curve["-2"]) * 2;
+            }
         } else {
-            $z_score = ($actualIMT - $median) / ($sd_plus - $median);
+            if ($actualIMT > $curve["+3"]) {
+                $denom = $curve["+3"] - $curve["+2"];
+                $z_score = $denom != 0
+                    ? 3 + (($actualIMT - $curve["+3"]) / $denom)
+                    : 3;
+            } elseif ($actualIMT > $curve["+2"]) {
+                $z_score = 2 + (($actualIMT - $curve["+2"]) / ($curve["+2"] - $curve["+1"]));
+            } elseif ($actualIMT > $curve["0"]) {
+                $z_score = ($actualIMT - $curve["0"]) / ($curve["+2"] - $curve["0"]) * 2;
+            } else {
+                $z_score = 0;
+            }
         }
 
+        // Kategori status gizi berdasarkan Z-score Permenkes
         if ($z_score < -3) {
-            $status = 'Sangat Kurus';
+            $status = 'Gizi Buruk';
         } elseif ($z_score >= -3 && $z_score < -2) {
-            $status = 'Kurus';
+            $status = 'Gizi Kurang';
         } elseif ($z_score >= -2 && $z_score <= 1) {
             $status = 'Normal';
         } elseif ($z_score > 1 && $z_score <= 2) {
-            $status = 'Risiko Gizi Lebih';
-        } elseif ($z_score > 2 && $z_score <= 3) {
             $status = 'Gizi Lebih';
         } else {
             $status = 'Obesitas';
         }
 
-        Log::debug("Reference Data:", [
-            'ageMonths' => $ageMonths,
-            'gender' => $gender,
-            'reference' => $reference,
-            'actualIMT' => $actualIMT,
-        ]);
-
         return [
             'status' => $status,
             'z_score' => round($z_score, 1),
-            'anthropometric_value' => round((float) $actualIMT, 1)
+            'anthropometric_value' => round($actualIMT, 1),
         ];
     }
+
+
 
     private static function calculatePregnantStatus($imt, $lila, $gestationalWeek = null)
     {

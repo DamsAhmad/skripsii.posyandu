@@ -27,12 +27,16 @@ class GrowthReferenceSeeder extends Seeder
                 if ($index === 0 || !isset($row[0])) continue;
 
                 GrowthReference::create([
-                    'indicator'  => $data['indicator'],
-                    'gender'     => $data['gender'],
-                    'age_months' => (int) $row[0],
-                    'sd_minus'   => (float) $row[1],
-                    'median'     => (float) $row[2],
-                    'sd_plus'    => (float) $row[3],
+                    'indicator'      => $data['indicator'],
+                    'gender'         => $data['gender'],
+                    'age_months'     => (int) $row[0],
+                    'sd_minus_3'     => isset($row[1]) ? (float) $row[1] : null,
+                    'sd_minus_2'     => isset($row[2]) ? (float) $row[2] : null,
+                    'sd_minus_1'     => isset($row[3]) ? (float) $row[3] : null,
+                    'median'         => isset($row[4]) ? (float) $row[4] : null,
+                    'sd_plus_1'      => isset($row[5]) ? (float) $row[5] : null,
+                    'sd_plus_2'      => isset($row[6]) ? (float) $row[6] : null,
+                    'sd_plus_3'      => isset($row[7]) ? (float) $row[7] : null,
                 ]);
             }
         }
