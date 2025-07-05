@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return result;
     }
 
-    // Tentukan rentang usia berdasarkan kategori
     let usiaRange;
     switch (category) {
         case "lansia":
@@ -51,7 +50,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const usiaList = generateUsiaDesimal(usiaRange[0], usiaRange[1]);
     const jumlahTitik = usiaList.length;
 
-    // Standar IMT yang sama untuk semua kategori
     const whoCurves = {
         Kurus: Array(jumlahTitik).fill(18.5),
         Normal: Array(jumlahTitik).fill(25.0),

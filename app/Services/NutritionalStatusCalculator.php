@@ -28,10 +28,10 @@ class NutritionalStatusCalculator
 
         if ($member->is_pregnant) {
             $heightInMeters = $exam->height / 100;
-            $imt = $exam->weight / ($heightInMeters * $heightInMeters);
+            // $imt = $exam->weight / ($heightInMeters * $heightInMeters);
             $lila = $exam->arm_circumference;
 
-            return self::calculatePregnantStatus($imt, $lila, $exam->gestational_week);
+            return self::calculatePregnantStatus($lila, $exam->gestational_week);
         }
 
         if ($member->category === 'balita') {
@@ -70,10 +70,13 @@ class NutritionalStatusCalculator
         }
 
         if ($member->is_pregnant) {
-            $heightInMeters = $exam->height / 100;
-            $imt = $exam->weight / ($heightInMeters * $heightInMeters);
             $lila = $exam->arm_circumference;
-            return self::combinePregnantStatus(self::categorizePregnantIMT($imt), ($lila < 23.5 ? 'KEK' : 'Normal'), $exam->gestational_week);
+
+            if (is_null($lila)) {
+                return 'LiLA tidak tersedia';
+            }
+
+            return $lila < 23.5 ? 'KEK' : 'Normal';
         }
 
         if ($member->category === 'balita') {
@@ -134,9 +137,13 @@ class NutritionalStatusCalculator
 
     public static function generateAnthropometric(Member $member, Examination $exam): ?float
     {
+        if ($member->is_pregnant) {
+            return $exam->arm_circumference ?? null;
+        }
+
         if (!$exam->weight || !$exam->height) return null;
 
-        if ($member->is_pregnant || in_array($member->category, ['dewasa', 'lansia'])) {
+        if (in_array($member->category, ['dewasa', 'lansia'])) {
             $heightInMeters = $exam->height / 100;
             return $exam->weight / ($heightInMeters * $heightInMeters);
         }
@@ -235,7 +242,6 @@ class NutritionalStatusCalculator
 
         $z_score = null;
 
-        // Perhitungan Z-score berbasis WHO interpolation
         if ($actualIMT < $curve["0"]) {
             if ($actualIMT < $curve["-3"]) {
                 $denom = $curve["-2"] - $curve["-3"];
@@ -284,41 +290,41 @@ class NutritionalStatusCalculator
 
 
 
-    private static function calculatePregnantStatus($imt, $lila, $gestationalWeek = null)
+    public static function calculatePregnantStatus($lila, $gestationalWeek = null)
     {
-        $imtCategory = self::categorizePregnantIMT($imt);
+        // $imtCategory = self::categorizePregnantIMT($imt);
         $kekStatus = ($lila < 23.5) ? 'KEK' : 'Normal';
 
-        $status = self::combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek);
 
         return [
-            'status' => $status,
+            'status' => $kekStatus,
             'z_score' => null,
-            'anthropometric_value' => round($imt, 1)
+            'anthropometric_value' => $lila
         ];
     }
 
-    private static function combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek)
-    {
-        $trimesterSuffix = $gestationalWeek ? ' Trimester ' . ceil($gestationalWeek / 13) : '';
+    // private static function combinePregnantStatus($imtCategory, $kekStatus, $gestationalWeek)
+    // {
+    //     $trimesterSuffix = $gestationalWeek ? ' Trimester ' . ceil($gestationalWeek / 13) : '';
 
-        if ($kekStatus === 'KEK') {
-            return $imtCategory . ' + KEK' . $trimesterSuffix;
-        }
+    //     if ($kekStatus === 'KEK') {
+    //         return $imtCategory . ' + KEK' . $trimesterSuffix;
+    //     }
 
-        return $imtCategory . $trimesterSuffix;
-    }
+    //     return $imtCategory . $trimesterSuffix;
+    // }
 
-    private static function categorizePregnantIMT($imt)
-    {
-        if ($imt < 18.5) return 'Kurus';
-        if ($imt < 25.0) return 'Normal';
-        if ($imt < 30.0) return 'Gemuk (Pra-Obesitas)';
-        if ($imt < 35.0) return 'Obesitas Kelas I';
-        if ($imt < 40.0) return 'Obesitas Kelas II';
-        if ($imt >= 40.0) return 'Obesitas Kelas III';
-        return 'Obesitas';
-    }
+
+    // private static function categorizePregnantIMT($imt)
+    // {
+    //     if ($imt < 18.5) return 'Kurus';
+    //     if ($imt < 25.0) return 'Normal';
+    //     if ($imt < 30.0) return 'Gemuk (Pra-Obesitas)';
+    //     if ($imt < 35.0) return 'Obesitas Kelas I';
+    //     if ($imt < 40.0) return 'Obesitas Kelas II';
+    //     if ($imt >= 40.0) return 'Obesitas Kelas III';
+    //     return 'Obesitas';
+    // }
 
     private static function categorizeIMT($imt, $category)
     {

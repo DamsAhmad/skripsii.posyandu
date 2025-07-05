@@ -223,7 +223,7 @@ class ExaminationResource extends Resource
                                         ->label('Usia Kehamilan (dalam satuan minggu)')
                                         ->required()
                                         ->numeric()
-                                        ->minValue(4)
+                                        ->minValue(1)
                                         ->maxValue(42)
                                         ->integer(),
 
