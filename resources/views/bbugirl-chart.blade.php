@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Grafik BB/U - {{ $member->member_name }}</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="{{ asset('js/filament/growthgirl-chart.js') }}"></script>
     <style>
         body {
@@ -28,8 +28,14 @@
     <a href="{{ url('/admin/DataPeserta/' . $member->id) }}" class="btn-back">
         ← Kembali ke Profil
     </a>
-    <canvas id="bbuChart" width="600" height="400" style="max-width: 100%; height: auto;"
-        data-member-name="{{ $member->member_name }}" data-weights='@json($dataPoints)'></canvas>
+    @php
+        $safeJson = json_encode($dataPoints, JSON_HEX_APOS | JSON_HEX_QUOT);
+    @endphp
+
+    <canvas id="bbuChart" data-member-name="{{ $member->member_name }}" data-weights='@json($dataPoints)'
+        data-who-curves='@json($whoCurves)'></canvas>
+
+
 </body>
 
 </html>

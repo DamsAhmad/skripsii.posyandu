@@ -13,12 +13,16 @@ return new class extends Migration
     {
         Schema::create('growth_references', function (Blueprint $table) {
             $table->id();
-            $table->string('indicator'); // bbu / imtu
+            $table->string('indicator');
             $table->enum('gender', ['Laki-laki', 'Perempuan']);
             $table->integer('age_months');
-            $table->float('median');
-            $table->float('sd_minus'); // -1SD
-            $table->float('sd_plus');  // +1SD
+            $table->float('sd_minus_3')->nullable();
+            $table->float('sd_minus_2')->nullable();
+            $table->float('sd_minus_1')->nullable();
+            $table->float('median')->nullable();
+            $table->float('sd_plus_1')->nullable();
+            $table->float('sd_plus_2')->nullable();
+            $table->float('sd_plus_3')->nullable();
             $table->timestamps();
         });
     }

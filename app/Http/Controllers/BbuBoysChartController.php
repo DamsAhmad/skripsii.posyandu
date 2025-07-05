@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use Carbon\Carbon;
+use App\Services\NutritionalStatusCalculator;
+use App\Models\GrowthReference;
 
 class BbuBoysChartController extends Controller
 {
@@ -14,21 +16,41 @@ class BbuBoysChartController extends Controller
 
         $dataPoints = $member->examinations
             ->filter(fn($exam) => $exam->checkup && $exam->weight)
-            ->map(function ($exam) use ($birthDate) {
+            ->map(function ($exam) use ($birthDate, $member) {
                 $checkupDate = Carbon::parse($exam->checkup->checkup_date);
                 $ageInMonths = round($birthDate->floatDiffInRealMonths($checkupDate), 1);
 
                 return [
                     'age' => $ageInMonths,
                     'weight' => $exam->weight,
+                    'z_score' => NutritionalStatusCalculator::generateZscore($member, $exam),
+                    'status' => NutritionalStatusCalculator::generateStatus($member, $exam),
                 ];
             })
             ->sortBy('age')
             ->values();
 
+        $whoCurves = GrowthReference::where('indicator', 'bbu')
+            ->where('gender', $member->gender)
+            ->orderBy('age_months')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'age' => $row->age_months,
+                    '-3' => $row->sd_minus_3,
+                    '-2' => $row->sd_minus_2,
+                    '-1' => $row->sd_minus_1,
+                    '0'  => $row->median,
+                    '+1' => $row->sd_plus_1,
+                    '+2' => $row->sd_plus_2,
+                    '+3' => $row->sd_plus_3,
+                ];
+            });
+
         return view('bbuboy-chart', [
             'member' => $member,
             'dataPoints' => $dataPoints,
+            'whoCurves' => $whoCurves,
         ]);
     }
 }
