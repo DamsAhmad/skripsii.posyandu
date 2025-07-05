@@ -11,11 +11,15 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Enums\IconPosition;
+use Filament\Forms\Get;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\ActionGroup;
 
 
 class UserResource extends Resource
@@ -42,8 +46,20 @@ class UserResource extends Resource
                 ->required()
                 ->email()
                 ->maxLength(255)
-                ->unique(ignoreRecord: true),
-            Forms\Components\Select::make('jenis_kelamin')
+                // ->unique(ignoreRecord: true),
+                ->rules([
+                    fn(Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                        $userId = $get('id');
+                        $exists = \App\Models\User::where('email', $value)
+                            ->when($userId, fn($q) => $q->where('id', '!=', $userId))
+                            ->exists();
+
+                        if ($exists) {
+                            $fail('Email sudah terdaftar.');
+                        }
+                    }
+                ]),
+            Select::make('jenis_kelamin')
                 ->label('Jenis Kelamin')
                 ->options([
                     'Laki-laki' => 'Laki-laki',
@@ -65,16 +81,16 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('no')
+                TextColumn::make('no')
                     ->label('No.')
                     ->rowIndex(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nama')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->label('E-mail')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('jenis_kelamin')
+                TextColumn::make('jenis_kelamin')
                     ->label('Jenis Kelamin')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -87,7 +103,7 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\ActionGroup::make([
+                ActionGroup::make([
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
