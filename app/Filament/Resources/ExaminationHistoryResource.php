@@ -6,9 +6,13 @@ use App\Filament\Resources\ExaminationHistoryResource\Pages;
 use App\Models\Examination;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Filters\Filter;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 
 class ExaminationHistoryResource extends Resource
@@ -26,7 +30,7 @@ class ExaminationHistoryResource extends Resource
     {
         return $form
             ->schema([
-                // Tidak perlu form untuk resource ini
+                //
             ]);
     }
 
@@ -34,21 +38,21 @@ class ExaminationHistoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('no')
+                TextColumn::make('no')
                     ->label('No.')
                     ->rowIndex(),
-                Tables\Columns\TextColumn::make('checkup.checkup_date')
+                TextColumn::make('checkup.checkup_date')
                     ->label('Tanggal Pemeriksaan')
                     ->date('d M Y')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('member.member_name')
+                TextColumn::make('member.member_name')
                     ->label('Nama Peserta')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('member.category')
+                TextColumn::make('member.category')
                     ->label('Kategori')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -60,50 +64,50 @@ class ExaminationHistoryResource extends Resource
                     })
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('weight')
+                TextColumn::make('weight')
                     ->label('Berat (kg)')
                     ->numeric(decimalPlaces: 1),
 
-                Tables\Columns\TextColumn::make('height')
+                TextColumn::make('height')
                     ->label('Tinggi (cm)')
                     ->numeric(decimalPlaces: 1),
 
-                Tables\Columns\TextColumn::make('arm_circumference')
+                TextColumn::make('arm_circumference')
                     ->label('L. Lengan (cm)')
                     ->numeric(decimalPlaces: 1),
 
-                Tables\Columns\TextColumn::make('head_circumference')
+                TextColumn::make('head_circumference')
                     ->label('L. Kepala (cm)')
                     ->numeric(decimalPlaces: 1),
 
-                Tables\Columns\TextColumn::make('abdominal_circumference')
+                TextColumn::make('abdominal_circumference')
                     ->label('L. Perut (cm)')
                     ->numeric(decimalPlaces: 1),
-                Tables\Columns\TextColumn::make('tension')
+                TextColumn::make('tension')
                     ->label('Tensi Darah')
                     ->suffix(' mmHg'),
-                Tables\Columns\TextColumn::make('uric_acid')
+                TextColumn::make('uric_acid')
                     ->label('Asam Urat')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('blood_sugar')
+                TextColumn::make('blood_sugar')
                     ->label('Gula Darah')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('cholesterol')
+                TextColumn::make('cholesterol')
                     ->label('Kolestrol')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('tension')
+                TextColumn::make('tension')
                     ->label('Tensi Darah')
                     ->suffix(' mmHg'),
-                Tables\Columns\TextColumn::make('uric_acid')
+                TextColumn::make('uric_acid')
                     ->label('Asam Urat')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('blood_sugar')
+                TextColumn::make('blood_sugar')
                     ->label('Gula Darah')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('cholesterol')
+                TextColumn::make('cholesterol')
                     ->label('Kolestrol')
                     ->suffix(' mg/dL'),
-                Tables\Columns\TextColumn::make('weight_status')
+                TextColumn::make('weight_status')
                     ->label('Status Gizi')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -117,14 +121,16 @@ class ExaminationHistoryResource extends Resource
 
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('member_id')
+                SelectFilter::make('member_id')
                     ->label('Nama Peserta')
                     ->options(fn() => \App\Models\Member::pluck('member_name', 'id'))
                     ->searchable()
                     ->default(request()->get('member_id'))
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
-                            $query->where('id', $data['value']);
+                            $query->whereHas('member', function ($q) use ($data) {
+                                $q->where('id', $data['value']);
+                            });
                         }
                     })
                     ->indicateUsing(function (array $data): ?string {
@@ -135,7 +141,7 @@ class ExaminationHistoryResource extends Resource
                         return null;
                     }),
 
-                Tables\Filters\SelectFilter::make('category')
+                SelectFilter::make('category')
                     ->label('Filter Kategori')
                     ->options([
                         'balita' => 'Balita',
@@ -152,10 +158,10 @@ class ExaminationHistoryResource extends Resource
                         }
                     }),
 
-                Tables\Filters\Filter::make('checkup_date')
+                Filter::make('checkup_date')
                     ->form([
-                        Forms\Components\DatePicker::make('dari_tanggal'),
-                        Forms\Components\DatePicker::make('sampai_tanggal'),
+                        DatePicker::make('dari_tanggal'),
+                        DatePicker::make('sampai_tanggal'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -170,7 +176,7 @@ class ExaminationHistoryResource extends Resource
                                 });
                             });
                     }),
-                Tables\Filters\SelectFilter::make('gender')
+                SelectFilter::make('gender')
                     ->label('Jenis Kelamin')
                     ->options([
                         'Laki-laki' => 'Laki-laki',

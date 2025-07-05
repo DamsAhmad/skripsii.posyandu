@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MemberResource\Pages;
+use App\Filament\Resources\MemberResource\Widgets\MemberCharts;
 use App\Filament\Resources\MemberResource\RelationManagers;
 use App\Models\Member;
 use Filament\Forms;
@@ -14,13 +15,22 @@ use Filament\Forms\Components\Section;
 use Carbon\Carbon;
 use Closure;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\EditAction;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\IconPosition;
 use Filament\Forms\Get;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
 use Illuminate\Validation\Rule;
 
 class MemberResource extends Resource
@@ -44,21 +54,21 @@ class MemberResource extends Resource
     {
         return [
             Section::make('Data Peserta')->schema([
-                Forms\Components\TextInput::make('member_name')
+                TextInput::make('member_name')
                     ->label('Nama Peserta')
                     ->placeholder('Masukan nama lengkap peserta')
                     ->required(),
-                Forms\Components\TextInput::make('nik')
+                TextInput::make('nik')
                     ->label('NIK')
                     ->placeholder('Masukan 16 digit NIK')
                     ->required()
                     ->numeric()
                     ->rules([
                         fn(Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
-                            if (is_null($value) || $value === '') {
-                                $fail('NIK wajib diisi.');
-                                return;
-                            }
+                            // if (is_null($value) || $value === '') {
+                            //     $fail('NIK wajib diisi.');
+                            //     return;
+                            // }
 
                             if (!is_numeric($value)) {
                                 $fail('NIK harus berupa angka.');
@@ -82,7 +92,7 @@ class MemberResource extends Resource
                             }
                         }
                     ]),
-                Forms\Components\TextInput::make('no_kk')
+                TextInput::make('no_kk')
                     ->label('No. KK')
                     ->placeholder('Masukan 16 digit No. KK')
                     ->required()
@@ -107,7 +117,7 @@ class MemberResource extends Resource
                             }
                         }
                     ]),
-                Forms\Components\Select::make('gender')
+                Select::make('gender')
                     ->label('Jenis Kelamin')
                     ->placeholder('Pilih jenis kelamin')
                     ->options([
@@ -116,7 +126,7 @@ class MemberResource extends Resource
                     ])
                     ->required()
                     ->reactive(),
-                Forms\Components\DatePicker::make('birthdate')
+                DatePicker::make('birthdate')
                     ->label('Tanggal Lahir')
                     ->required()
                     ->reactive()
@@ -125,17 +135,17 @@ class MemberResource extends Resource
                     ->validationMessages([
                         'before_or_equal' => 'Tanggal lahir tidak boleh lebih dari hari ini.',
                     ]),
-                Forms\Components\TextInput::make('birthplace')
+                TextInput::make('birthplace')
                     ->label('Tempat Lahir')
                     ->placeholder('Contoh: Jakarta atau Sleman')
                     ->required(),
-                Forms\Components\TextInput::make('father')
+                TextInput::make('father')
                     ->label('Nama Ayah')
                     ->placeholder('Masukan Nama Ayah'),
-                Forms\Components\TextInput::make('mother')
+                TextInput::make('mother')
                     ->label('Nama Ibu')
                     ->placeholder('Masukan Nama Ibu'),
-                Forms\Components\TextInput::make('parent_phone')
+                TextInput::make('parent_phone')
                     ->label('No. Telepon Orang Tua')
                     ->placeholder('Contoh: 081234567890')
                     ->numeric()
@@ -143,7 +153,7 @@ class MemberResource extends Resource
                     ->validationMessages([
                         'regex' => 'Nomor telepon harus terdiri dari 11 hingga 13 digit angka.',
                     ]),
-                Forms\Components\TextInput::make('nik_parent')
+                TextInput::make('nik_parent')
                     ->label('NIK Ortu')
                     ->placeholder('Masukan NIK Orang Tua')
                     ->numeric()
@@ -163,7 +173,7 @@ class MemberResource extends Resource
                             }
                         }
                     ]),
-                Forms\Components\Select::make('is_pregnant')
+                Select::make('is_pregnant')
                     ->label('Sedang hamil?')
                     ->options([
                         false => 'Tidak',
@@ -175,8 +185,8 @@ class MemberResource extends Resource
                     ->hidden(
                         fn($get) =>
                         $get('gender') !== 'Perempuan' ||
-                            \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) < 180 ||
-                            \Carbon\Carbon::parse($get('birthdate'))->diffInMonths(now()) > 600
+                            Carbon::parse($get('birthdate'))->diffInMonths(now()) < 180 ||
+                            Carbon::parse($get('birthdate'))->diffInMonths(now()) > 600
                     ),
             ]),
         ];
@@ -187,13 +197,13 @@ class MemberResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('no')
+                TextColumn::make('no')
                     ->label('No.')
                     ->rowIndex(),
-                Tables\Columns\TextColumn::make('member_name')
+                TextColumn::make('member_name')
                     ->label('Nama')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('category')
+                TextColumn::make('category')
                     ->label('Kategori')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -204,10 +214,10 @@ class MemberResource extends Resource
                         'lansia' => 'danger',
                         'ibu hamil' => 'danger',
                     }),
-                Tables\Columns\TextColumn::make('gender')
+                TextColumn::make('gender')
                     ->label('Jenis Kelamin')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('age')
+                TextColumn::make('age')
                     ->label('Usia')
                     ->state(function ($record) {
                         $birthdate = Carbon::parse($record->birthdate);
@@ -231,24 +241,7 @@ class MemberResource extends Resource
             ])
             ->defaultSort('category', 'asc')
             ->filters([
-                // Tables\Filters\SelectFilter::make('member_id')
-                //     ->label('Nama Peserta')
-                //     ->options(fn() => \App\Models\Member::pluck('member_name', 'id'))
-                //     ->searchable()
-                //     ->default(request()->get('member_id'))
-                //     ->query(function (Builder $query, array $data) {
-                //         if (!empty($data['value'])) {
-                //             $query->where('id', $data['value']);
-                //         }
-                //     })
-                //     ->indicateUsing(function (array $data): ?string {
-                //         if (isset($data['value'])) {
-                //             $name = \App\Models\Member::find($data['value'])?->member_name;
-                //             return $name ? "Nama: $name" : null;
-                //         }
-                //         return null;
-                //     }),
-                Tables\Filters\SelectFilter::make('category')
+                SelectFilter::make('category')
                     ->label('Filter Kategori')
                     ->options([
                         'balita' => 'balita',
@@ -262,7 +255,7 @@ class MemberResource extends Resource
                             $query->where('category', $data['value']);
                         }
                     }),
-                Tables\Filters\SelectFilter::make('gender')
+                SelectFilter::make('gender')
                     ->label('Jenis Kelamin')
                     ->options([
                         'Laki-laki' => 'Laki-laki',
@@ -273,16 +266,16 @@ class MemberResource extends Resource
                             $query->where('gender', $data['value']);
                         }
                     }),
-                Tables\Filters\Filter::make('usia')
+                Filter::make('usia')
                     ->label('Filter Usia')
                     ->form([
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\TextInput::make('min_age_value')
+                        Grid::make(2)->schema([
+                            TextInput::make('min_age_value')
                                 ->label('Usia Minimal')
                                 ->numeric()
                                 ->dehydrated(),
 
-                            Forms\Components\Select::make('min_age_unit')
+                            Select::make('min_age_unit')
                                 ->label('Satuan')
                                 ->options([
                                     'bulan' => 'Bulan',
@@ -291,13 +284,13 @@ class MemberResource extends Resource
                                 ->dehydrated(),
                         ]),
 
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\TextInput::make('max_age_value')
+                        Grid::make(2)->schema([
+                            TextInput::make('max_age_value')
                                 ->label('Usia Maksimal')
                                 ->numeric()
                                 ->dehydrated(),
 
-                            Forms\Components\Select::make('max_age_unit')
+                            Select::make('max_age_unit')
                                 ->label('Satuan')
                                 ->options([
                                     'bulan' => 'Bulan',
@@ -335,16 +328,16 @@ class MemberResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\Action::make('lihat_profil')
+                ActionGroup::make([
+                    Action::make('lihat_profil')
                         ->label('Profil')
                         ->url(fn($record) => MemberResource::getUrl('view', ['record' => $record]))
                         ->color('info')
                         ->icon('heroicon-o-user')
                         ->iconPosition(IconPosition::After),
-                    Tables\Actions\EditAction::make()
+                    EditAction::make()
                         ->iconPosition(IconPosition::After),
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->label('Hapus')
                         ->modalHeading('Hapus Anggota')
                         ->modalDescription('Anda yakin ingin menghapus data peserta ini? Tindakan ini tidak dapat dibatalkan.')
@@ -399,7 +392,7 @@ class MemberResource extends Resource
     public static function getWidgets(): array
     {
         return [
-            \App\Filament\Resources\MemberResource\Widgets\MemberCharts::class,
+            MemberCharts::class,
         ];
     }
 

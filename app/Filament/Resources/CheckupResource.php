@@ -18,6 +18,10 @@ use Filament\Support\Enums\ActionSize;
 use ExaminationRelationManager;
 use Illuminate\Validation\Rule;
 use Filament\Forms\Get;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 
 
 class CheckupResource extends Resource
@@ -37,7 +41,7 @@ class CheckupResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\DatePicker::make('checkup_date')
+                DatePicker::make('checkup_date')
                     ->label('Tanggal Pemeriksaan')
                     ->required()
                     ->default(now())
@@ -50,7 +54,7 @@ class CheckupResource extends Resource
                         'required' => 'Tanggal pemeriksaan wajib diisi.',
                     ]),
 
-                Forms\Components\TextInput::make('location')
+                TextInput::make('location')
                     ->label('Lokasi')
                     ->required()
                     ->maxLength(255)
@@ -58,11 +62,11 @@ class CheckupResource extends Resource
                         'required' => 'Lokasi pemeriksaan wajib diisi',
                     ]),
 
-                Forms\Components\Textarea::make('annot')
+                Textarea::make('annot')
                     ->label('Catatan')
                     ->columnSpanFull(),
 
-                Forms\Components\Hidden::make('user_id')
+                Hidden::make('user_id')
                     ->default(Auth::id())
                     ->required(),
             ]);
