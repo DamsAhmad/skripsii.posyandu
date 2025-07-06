@@ -37,14 +37,14 @@ document.addEventListener("DOMContentLoaded", function () {
     let usiaRange;
     switch (category) {
         case "lansia":
-            usiaRange = [45, 80];
+            usiaRange = [61, 100];
             break;
         case "ibu-hamil":
             usiaRange = [15, 55];
             break;
         case "dewasa":
         default:
-            usiaRange = [19, 44];
+            usiaRange = [19, 60];
     }
 
     const usiaList = generateUsiaDesimal(usiaRange[0], usiaRange[1]);
