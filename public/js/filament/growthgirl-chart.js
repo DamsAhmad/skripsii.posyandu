@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const dataPoints = JSON.parse(canvas.dataset.weights || "[]");
     const whoRaw = JSON.parse(canvas.dataset.whoCurves || "[]");
 
-    // Proses data kurva WHO
+    // jajal dulu ad ga
     const whoCurves = {
         "-3": [],
         "-2": [],
