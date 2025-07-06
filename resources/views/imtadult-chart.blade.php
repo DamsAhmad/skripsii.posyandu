@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <title>Grafik IMT Dewasa - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ asset('js/filament/imt-adult-chart.js') }}"></script>
+
+    <script
+        src="{{ asset('js/filament/imt-adult-chart.js') }}?v={{ filemtime(public_path('js/filament/imt-adult-chart.js')) }}">
+    </script>
     <style>
         body {
             font-family: sans-serif;
