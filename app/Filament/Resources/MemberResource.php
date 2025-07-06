@@ -368,7 +368,7 @@ class MemberResource extends Resource
             return 'balita';
         } elseif ($ageInMonths <= 228) {
             return 'anak-remaja';
-        } elseif ($ageInMonths <= 539) {
+        } elseif ($ageInMonths <= 720) {
             return 'dewasa';
         } else {
             return 'lansia';

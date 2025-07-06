@@ -19,8 +19,8 @@ class MemberSeeder extends Seeder
         $categories = [
             'balita' => [0, 60],
             'anak-remaja' => [61, 228],
-            'dewasa' => [229, 539],
-            'lansia' => [540, 960],
+            'dewasa' => [229, 720],
+            'lansia' => [721, 1200],
             'ibu hamil' => [180, 600],
         ];
 
