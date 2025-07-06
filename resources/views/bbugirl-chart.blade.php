@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <title>Grafik BB/U - {{ $member->member_name }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="{{ asset('js/filament/growthgirl-chart.js') }}"></script>
+    <script
+        src="{{ asset('js/filament/growthgirl-chart.js') }}?v={{ filemtime(public_path('js/filament/growthgirl-chart.js')) }}">
+    </script>
     <style>
         body {
             font-family: sans-serif;
